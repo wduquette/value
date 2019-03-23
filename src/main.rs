@@ -1,6 +1,32 @@
 fn main() {
     println!("Hello, world!");
+
+    let mp = MoltPair::new(3,4);
+
+    let inner = InnerValue {
+        str_rep: None,
+        int_rep: Some(IntRep {
+            type_def: &MOLT_PAIR,
+            value: Box::new(mp),
+        })
+    };
+
+    let outer = OuterValue::new(inner);
+
+    let mv: MoltValue = Rc::new(outer);
+
+    match test_func(&mv) {
+        Ok(msg) => { println!("Got pair: {}", msg)}
+        Err(msg) => { println!("Got error: {}", msg)}
+    }
 }
+
+fn test_func(mv: &MoltValue) -> Result<String,String> {
+    let new_pair: MoltPair = get_as(&mv)?;
+
+    Ok(format!("Got it: {}", new_pair.to_string()))
+}
+
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::any::TypeId;
@@ -34,10 +60,14 @@ impl MoltPair {
         Self { f1, f2 }
     }
 
+    pub fn to_string(&self) -> String {
+        format!("({},{})", self.f1, self.f2)
+    }
+
     pub fn any_to_string(value: &Any) -> String {
         match value.downcast_ref::<MoltPair>() {
             Some(mp) => {
-                format!("({},{})", mp.f1, mp.f2)
+                mp.to_string()
             }
             None => {
                 panic!("not a MoltPair");
@@ -85,6 +115,14 @@ impl Clone for IntRep {
 struct OuterValue {
     inner: RefCell<InnerValue>,
 }
+
+impl OuterValue {
+    pub fn new(inner: InnerValue) -> Self {
+        Self {
+            inner: RefCell::new(inner)
+        }
+    }
+}
 // TODO: Implement debug for MoltType, and derive it for this.
 #[derive(Clone)]
 struct InnerValue {
@@ -125,9 +163,27 @@ fn get_value(mv: &MoltValue) -> Result<MoltPair, String> {
         }
     }
 
-    if let Some(str_rep) = &inner.str_rep {
-        // TODO: Parse as pair, if possible.
-        return Ok(MoltPair::new(1,2));
+    // if let Some(str_rep) = &inner.str_rep {
+    //     // TODO: Parse as pair, if possible.
+    //     return Ok(MoltPair::new(1,2));
+    // }
+
+    Err("Conversion failed".into())
+}
+
+// TODO: See if we can make this generic for any MoltType.
+fn get_as<T: 'static +  Clone>(mv: &MoltValue) -> Result<T, String> {
+    let inner = mv.inner.borrow();
+
+    if let Some(int_rep) = &inner.int_rep {
+        match int_rep.value.downcast_ref::<T>() {
+            Some(mv) => {
+                return Ok(mv.clone());
+            }
+            None => {
+                return Err("Could not convert.".into());
+            }
+        }
     }
 
     Err("Conversion failed".into())
