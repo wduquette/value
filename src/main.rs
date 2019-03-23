@@ -1,91 +1,134 @@
 fn main() {
     println!("Hello, world!");
 }
+use std::rc::Rc;
+use std::cell::RefCell;
 use std::any::TypeId;
 use std::any::Any;
 
-trait MoltType {
-    fn to_string(&self) -> String;
+pub type MoltStringFunc = fn(value: &Any) -> String;
+pub type MoltCloneFunc = fn(value: &Any) -> Box<dyn Any>;
+
+struct MoltType {
+    name: &'static str,
+    to_string: MoltStringFunc,
+    clone: MoltCloneFunc,
 }
+
+//-------------------------------------------------------------------
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct MoltPair {
     f1: i32,
     f2: i32,
 }
 
-impl MoltType for MoltPair {
-    fn to_string(&self) -> String {
-        format!("({},{})", self.f1, self.f2)
+const MOLT_PAIR: MoltType = MoltType {
+    name: "MOLT_PAIR",
+    to_string: MoltPair::any_to_string,
+    clone: MoltPair::any_clone,
+};
+
+impl MoltPair {
+    pub fn new(f1: i32, f2: i32) -> Self {
+        Self { f1, f2 }
     }
 
+    pub fn any_to_string(value: &Any) -> String {
+        match value.downcast_ref::<MoltPair>() {
+            Some(mp) => {
+                format!("({},{})", mp.f1, mp.f2)
+            }
+            None => {
+                panic!("not a MoltPair");
+            }
+        }
+    }
+
+    pub fn any_clone(value: &Any) -> Box<dyn Any> {
+        match value.downcast_ref::<MoltPair>() {
+            Some(mv) => {
+                Box::new(mv.clone())
+            }
+            None => {
+                panic!("not a MoltPair");
+            }
+        }
+    }
 }
 
-#[allow(dead_code)] // Temp
-struct MoltValue {
-    string_rep: Option<String>,
-    // any_rep: Box<dyn Any>,
-    int_rep: Option<Box<dyn MoltType>>,
+
+// TODO: Implement debug for MoltType, and derive it for this.
+struct IntRep {
+    type_def: &'static MoltType,
+    value: Box<dyn Any>,
 }
 
-#[allow(clippy::wrong_self_convention)]
-impl MoltValue {
-    fn to_string(&mut self) -> String {
-        if self.string_rep.is_some() {
-            self.string_rep.as_ref().unwrap().to_string()
-        } else if self.int_rep.is_some() {
-            let string_val = self.int_rep.as_ref().unwrap().to_string();
+impl IntRep {
+    fn to_string(&self) -> String {
+        (self.type_def.to_string)(&self.value)
+    }
+}
 
-            self.string_rep = Some(string_val.clone());
-            string_val
+impl Clone for IntRep {
+    fn clone(&self) -> Self {
+        IntRep {
+            type_def: self.type_def,
+            value: (self.type_def.clone)(&self.value),
+        }
+    }
+}
+
+
+// TODO: Implement debug for MoltType, and derive it for this.
+#[derive(Clone)]
+struct OuterValue {
+    inner: RefCell<InnerValue>,
+}
+// TODO: Implement debug for MoltType, and derive it for this.
+#[derive(Clone)]
+struct InnerValue {
+    str_rep: Option<String>,
+    int_rep: Option<IntRep>,
+}
+
+impl OuterValue {
+    pub fn to_string(&self) -> String {
+        let mut inner = self.inner.borrow_mut();
+
+        if inner.str_rep.is_some() {
+            inner.str_rep.as_ref().unwrap().clone()
+        } else if inner.int_rep.is_some() {
+            let string = inner.int_rep.as_ref().unwrap().to_string();
+            inner.str_rep = Some(string.clone());
+            string
         } else {
-            self.string_rep = Some(String::new());
             String::new()
         }
     }
 }
 
-fn get_pair(val: &'_ MoltValue) -> Result<&'_ MoltPair, String> {
-    let value_any = val.int_rep.as_ref().unwrap() as &Any;
+type MoltValue = Rc<OuterValue>;
 
-    // Cannot seem to downcast to MoltPair, probably because the original
-    // is a MoltType trait object.
-    match value_any.downcast_ref::<MoltPair>() {
-        Some(mv) => {
-            Ok(mv)
-        }
-        None => {
-            Err("no can do!".to_string())
-        }
-    }
-}
+// TODO: See if we can make this generic for any MoltType.
+fn get_value(mv: &MoltValue) -> Result<MoltPair, String> {
+    let inner = mv.inner.borrow();
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_foo() {
-        let pair = MoltPair { f1: 1, f2: 2};
-
-        let mut mv = MoltValue {
-            string_rep: None,
-            int_rep: Some(Box::new(pair)),
-        };
-
-        let str = mv.to_string();
-        assert_eq!(str, "(1,2)");
-
-        let result = get_pair(&mv);
-        println!("pair result={:?}", result);
-
-        match result {
-            Ok(pair) => {
-                assert_eq!(pair.f1, 1);
-                assert_eq!(pair.f2, 2);
+    if let Some(int_rep) = &inner.int_rep {
+        match int_rep.value.downcast_ref::<MoltPair>() {
+            Some(mv) => {
+                return Ok(mv.clone());
             }
-            _ => {
-                assert!(false);
+            None => {
+                return Err("Could not convert.".into());
             }
         }
     }
+
+    if let Some(str_rep) = &inner.str_rep {
+        // TODO: Parse as pair, if possible.
+        return Ok(MoltPair::new(1,2));
+    }
+
+    Err("Conversion failed".into())
 }
