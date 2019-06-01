@@ -2,6 +2,7 @@
 
 ## 2019-06-01
 
+*   value3.rs: Add `Datum::Other(Rc<Any>)`.
 *   I can support any input type by adding `Datum::Other(Rc<Any>)`.
     *   It probably needs to be `Datum::Other({SomeTypeToken},Rc<Any>)`,
         where {SomeTypeToken} is a value used to look up the type details.
@@ -19,7 +20,9 @@
         *   Which means I need to find out how that's done, so I can:
             *   Make sure that there *is* a string representation
             *   And then hash on it.
-    
+*   Added code to parse string_reps into i64 and f64 if possible, and indicated where to do
+    that for list and Any.
+
 ## 2019-05-30
 
 *   A MoltValue may or may not have an immutable clonable string. string.
