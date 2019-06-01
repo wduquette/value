@@ -1,18 +1,20 @@
+use std::collections::HashMap;
 use std::rc::Rc;
 
-type MyString = Rc<String>;
-type MyList = Rc<Vec<MyValue>>;
+type MyHashMap = HashMap<MyValue,MyValue>;
+
+type MyList = Vec<MyValue>;
 
 #[derive(Clone,Debug,PartialEq)]
 enum Datum {
     Int(i64),
     Flt(f64),
-    List(MyList),
+    List(Rc<MyList>),
 }
 
 #[derive(Clone,Debug,PartialEq)]
 struct MyValue {
-    string_rep: Option<MyString>,
+    string_rep: Option<Rc<String>>,
     data_rep: Option<Datum>,
 }
 
@@ -35,7 +37,7 @@ impl MyValue {
 
 
     // A new value, (none,list)
-    pub fn from_list(list: Vec<MyValue>) -> MyValue {
+    pub fn from_list(list: MyList) -> MyValue {
         MyValue {
             string_rep: None,
             data_rep: Some(Datum::List(Rc::new(list))),
@@ -58,7 +60,7 @@ impl MyValue {
         }
     }
 
-    pub fn to_string(&self) -> MyString {
+    pub fn to_string(&self) -> Rc<String> {
         // FIRST, if there's already a string, return it.
         if let Some(str) = &self.string_rep {
             return str.clone();
@@ -91,7 +93,7 @@ impl MyValue {
     }
 
     // Not quite right.  If there's no datum, should try to parse string.
-    pub fn to_list(&self) -> Result<MyList,String> {
+    pub fn to_list(&self) -> Result<Rc<MyList>,String> {
         if let Some(Datum::List(list)) = &self.data_rep {
             Ok(list.clone())
         } else {

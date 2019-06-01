@@ -1,5 +1,25 @@
 # MoltValue thoughts
 
+## 2019-06-01
+
+*   I can support any input type by adding `Datum::Other(Rc<Any>)`.
+    *   It probably needs to be `Datum::Other({SomeTypeToken},Rc<Any>)`,
+        where {SomeTypeToken} is a value used to look up the type details.
+*   Problem: `Rc<Any>`` supports Clone; but it doesn't support PartialEq.  
+    *   It isn't obvious (if it's even possible) to tell Rust that
+        the `Any` is only going to contain values of types that
+        implement certain traits like `PartialEq`.  `Any` really means "any".
+        *   Got a question in at users.rust-lang.org.
+    *   But this might not be a real problem.
+        *   We'll be comparing MoltValues for equality either as numbers or
+            as strings, not as MoltValue objects.
+        *   If we use MoltValues as `HashMap` keys, as we will when I
+            implement dicts and arrays, I'll need to hash on the `string_rep`,
+            not on the object as a whole.
+        *   Which means I need to find out how that's done, so I can:
+            *   Make sure that there *is* a string representation
+            *   And then hash on it.
+    
 ## 2019-05-30
 
 *   A MoltValue may or may not have an immutable clonable string. string.
