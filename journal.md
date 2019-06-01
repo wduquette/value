@@ -32,6 +32,9 @@
         *   string-to-data if the requested data_rep isn't available.
     *   Determine how to register types with the relevant data-to-string and string-to-data
         conversions.
+    *   NOTE: I could, possibly, always add the string_rep when given a data_rep, so that I
+        don't ever need to compute it on the fly.  But since I need to compute the data_rep
+        and save it, there's no real advantage to not using interior mutability for both.
 
 ## 2019-05-30
 
