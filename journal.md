@@ -1,5 +1,30 @@
 # MoltValue thoughts
 
+## 2019-05-30
+
+*   A MoltValue may or may not have an immutable clonable string. string.
+    *   An immutable clonable string is spelled Rc<String>; and since we might not
+        have it, it's Option<Rc<String>>.
+*   I'm going to try avoiding the use of internal mutation for shimmering.
+    *   (String, None) to (String, Data):
+        *   If you have a MoltValue with just a string, you create a new MoltValue with the
+            same string and a new data_rep.
+    *   (None, Data) to (String, Data):
+        *   If you have a MoltValue with just a data_rep, you create a new MoltValue with the
+            same data_rep and the string.
+    *   (None, Data1) to (String, Data1) to (String, Data2)
+        *   If you need to shimmer from one data_rep to another, you do it in two steps.
+*   value2.rs shows the beginnings of what I want.
+    *   Will convert binary types to string on demand, and make them available as
+        binary.
+        *   Needs some work on the "to_*" methods, see comments.
+    *   Better than what I've currently got, but without a better way to fill in the
+        second slot might just as well be an enum.
+    *   Doesn't support registered types.
+    *   Supports three datums, i64, f64, and Vec<MyValue>
+    *   Reference-counts strings and list content.
+    *   Not sure how best to fill in the empty slot and keep it.
+
 ## 2019-03-22
 
 *   Reference-counting
