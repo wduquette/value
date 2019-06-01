@@ -22,6 +22,16 @@
             *   And then hash on it.
 *   Added code to parse string_reps into i64 and f64 if possible, and indicated where to do
     that for list and Any.
+*   I've decided that I do need interior mutability to fill in the string_rep or data_rep.
+*   Next Steps:
+    *   `string_rep: RefCell<Option<Rc<String>>>`
+    *   `data_rep: RefCell<Option<Datum>>`
+    *   Update the i64 and f64 code to do string-to-data and data-to-string translations
+        automatically.
+        *   data-to-string only if there is no string_rep
+        *   string-to-data if the requested data_rep isn't available.
+    *   Determine how to register types with the relevant data-to-string and string-to-data
+        conversions.
 
 ## 2019-05-30
 
