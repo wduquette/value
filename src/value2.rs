@@ -132,4 +132,23 @@ mod tests {
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
         assert_eq!(val.to_flt(), Ok(12.5));
     }
+
+    #[test]
+    fn from_to_list() {
+        let a = MyValue::from_string("abc");
+        let b = MyValue::from_float(12.5);
+        let listval = MyValue::from_list(vec!(a, b));
+
+        // Get it back as Rc<MyList>
+        let result = listval.to_list();
+
+        assert!(result.is_ok());
+
+        if let Ok(rclist) = result {
+            assert_eq!(rclist.len(), 2);
+
+            // TODO: Really, I should extract the elements and make sure they match
+            // what I put in.  But for this level of prototype, this will do.
+        }
+    }
 }
