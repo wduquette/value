@@ -4,3 +4,5 @@ mod value1;
 mod value2;
 #[allow(dead_code)]
 mod value3;
+#[allow(dead_code)]
+mod value4;

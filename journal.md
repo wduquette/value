@@ -1,5 +1,19 @@
 # MoltValue thoughts
 
+## 2019-06-02
+
+*   Got a response from a person on users.rust-lang.org:
+    *   https://users.rust-lang.org/t/enums-any-and-partialeq/28844/5
+    *   It shows how to create a struct that implements Any plus others.
+    *   Need to learn how to do this to define structs that can do Any and also
+        be be converted to and from strings.
+        *   Which means I need to go read up on how to do a struct that can be
+            converted to and from a string.
+        *   It looks like it should get the job done.
+*   value4.rs: Add RefCell, allowing interior mutability.
+    *   But no "Any" option, or MyList; want to keep it simpler as I implement the conversion
+        logic.
+                
 ## 2019-06-01
 
 *   value3.rs: Add `Datum::Other(Rc<Any>)`.
