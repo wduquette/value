@@ -60,14 +60,17 @@ impl MyValue {
 
     // Tries to return the value as an int
     pub fn to_int(&self) -> Result<i64,String> {
-        let data_ref = self.data_rep.borrow();
+        let mut data_ref = self.data_rep.borrow_mut();
         let string_ref = self.string_rep.borrow();
 
         if let Some(Datum::Int(int)) = *data_ref {
             Ok(int)
         } else if let Some(str) = &*string_ref {
             match str.parse::<i64>() {
-                Ok(int) => Ok(int),
+                Ok(int) => {
+                    *data_ref = Some(Datum::Int(int));
+                    Ok(int)
+                }
                 Err(_) => Err("Not an integer".to_string()),
             }
         } else {
@@ -84,15 +87,18 @@ impl MyValue {
     }
 
     // Tries to return the value as a float
-    pub fn to_flt(&self) -> Result<f64,String> {
-        let data_ref = self.data_rep.borrow();
+    pub fn to_float(&self) -> Result<f64,String> {
+        let mut data_ref = self.data_rep.borrow_mut();
         let string_ref = self.string_rep.borrow();
 
         if let Some(Datum::Flt(flt)) = *data_ref {
             Ok(flt)
         } else if let Some(str) = &*string_ref {
             match str.parse::<f64>() {
-                Ok(flt) => Ok(flt),
+                Ok(flt) => {
+                    *data_ref = Some(Datum::Flt(flt));
+                    Ok(flt)
+                }
                 Err(_) => Err("Not a float".to_string()),
             }
         } else {
@@ -119,12 +125,12 @@ mod tests {
         let val = MyValue::from_int(5);
         assert_eq!(*val.to_string(), "5".to_string());
         assert_eq!(val.to_int(), Ok(5));
-        assert_eq!(val.to_flt(), Ok(5.0));
+        assert_eq!(val.to_float(), Ok(5.0));
 
         let val = MyValue::from_string("7");
         assert_eq!(*val.to_string(), "7".to_string());
         assert_eq!(val.to_int(), Ok(7));
-        assert_eq!(val.to_flt(), Ok(7.0));
+        assert_eq!(val.to_float(), Ok(7.0));
 
         let val = MyValue::from_string("abc");
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
@@ -133,19 +139,19 @@ mod tests {
     }
 
     #[test]
-    fn from_to_flt() {
+    fn from_to_float() {
         let val = MyValue::from_float(12.5);
         assert_eq!(*val.to_string(), "12.5".to_string());
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
-        assert_eq!(val.to_flt(), Ok(12.5));
+        assert_eq!(val.to_float(), Ok(12.5));
 
         let val = MyValue::from_string("7.8");
         assert_eq!(*val.to_string(), "7.8".to_string());
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
-        assert_eq!(val.to_flt(), Ok(7.8));
+        assert_eq!(val.to_float(), Ok(7.8));
 
         let val = MyValue::from_string("abc");
-        assert_eq!(val.to_flt(), Err("Not a float".to_string()));
+        assert_eq!(val.to_float(), Err("Not a float".to_string()));
     }
 
 }

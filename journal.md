@@ -13,7 +13,18 @@
 *   value4.rs: Add RefCell, allowing interior mutability.
     *   But no "Any" option, or MyList; want to keep it simpler as I implement the conversion
         logic.
-                
+    *   Added the RefCells.
+        *   to_string() now saves the computed string_rep.
+        *   to_int() and to_float() now saves the computed data_rep.
+        *   The data_rep can shimmer if the same string can be interpreted as two different
+            types, but the string_rep is fixed once set.
+*   Next Steps:
+    *   Figure out how to generalize the to/from string processing.  We ought to be able to
+        define this on the Datum and require it of all types used within the Datum cases.
+    *   Then, figure out how to use the forum answer given above to define a wrapper such
+        that we can wrap any type that can be converted to and from a string, and also
+        access it.
+
 ## 2019-06-01
 
 *   value3.rs: Add `Datum::Other(Rc<Any>)`.
