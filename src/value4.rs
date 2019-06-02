@@ -13,7 +13,7 @@ enum Datum {
 }
 
 #[derive(Clone,Debug)]
-struct MyValue {
+pub struct MyValue {
     string_rep: RefCell<Option<Rc<String>>>,
     data_rep: RefCell<Option<Datum>>,
 }
@@ -29,19 +29,25 @@ impl MyValue {
 
     pub fn to_string(&self) -> Rc<String> {
         // FIRST, if there's already a string, return it.
-        let string_ref = self.string_rep.borrow();
+        let mut string_ref = self.string_rep.borrow_mut();
 
         if let Some(str) = &*string_ref {
             return str.clone();
         }
 
-        // NEXT, if there's no string there must be data.
+
+        // NEXT, if there's no string there must be data.  Convert the data to a string,
+        // and save it for next time.
         let data_ref = self.data_rep.borrow();
-        match *data_ref {
+        let new_string = match *data_ref {
             Some(Datum::Int(int)) => Rc::new(int.to_string()),
             Some(Datum::Flt(flt)) => Rc::new(flt.to_string()),
             _ =>  Rc::new("".to_string()),
-        }
+        };
+
+        *string_ref = Some(new_string.clone());
+
+        new_string
     }
 
     // A new value, (none,int)
@@ -113,7 +119,7 @@ mod tests {
         let val = MyValue::from_int(5);
         assert_eq!(*val.to_string(), "5".to_string());
         assert_eq!(val.to_int(), Ok(5));
-        assert_eq!(val.to_flt(), Err("Not a float".to_string()));
+        assert_eq!(val.to_flt(), Ok(5.0));
 
         let val = MyValue::from_string("7");
         assert_eq!(*val.to_string(), "7".to_string());
@@ -122,6 +128,8 @@ mod tests {
 
         let val = MyValue::from_string("abc");
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
+
+
     }
 
     #[test]
