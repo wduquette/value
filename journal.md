@@ -22,6 +22,8 @@ impl fmt::Display for MyList {
         *   You're basically implementing a `from_str()` function that returns a `Result`.
             The error type is up to the trait.  
         *   Then you can use the str::parse<T>("...") call.
+    *   So, to be used as an "Other" within the MoltValue, the type needs to implement
+        ToString and FromStr.
 
 ## 2019-06-02
 
