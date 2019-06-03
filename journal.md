@@ -1,5 +1,28 @@
 # MoltValue thoughts
 
+## 2019-06-03
+*   Implementing string conversion in Rust:
+    *   To implement conversion of a type into a string, it should implement the
+        ToString trait; and the way to implement the ToString trait is to
+        implement the fmt::Display trait which also makes it work well with
+        `print!()`.
+        *   See https://doc.rust-lang.org/rust-by-example/conversion/string.html#to-and-from-strings
+
+```Rust
+impl fmt::Display for MyList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // TODO: format list as a string
+        write!(f, "{}", my_string)
+    }
+}
+```
+
+    *   To implement parsing, implement the `FromStr` trait.
+        *   See https://rust-lang-nursery.github.io/rust-cookbook/text/string_parsing.html#implement-the-fromstr-trait-for-a-custom-struct
+        *   You're basically implementing a `from_str()` function that returns a `Result`.
+            The error type is up to the trait.  
+        *   Then you can use the str::parse<T>("...") call.
+
 ## 2019-06-02
 
 *   Got a response from a person on users.rust-lang.org:
