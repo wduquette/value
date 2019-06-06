@@ -8,6 +8,8 @@
     *   Wrapper(MyType) can be saved as a `dyn MyAny`.
     *   The `dyn MyAny` support to_string().
     *   And can be downcast to Wrapper<MyType> again.  Woohoo!
+*   Extended it to show how to write `get_mytype` functions.
+*   Next step: see if I can integrate this into MyValue!
 
 ## 2019-06-03
 *   Implementing string conversion in Rust:

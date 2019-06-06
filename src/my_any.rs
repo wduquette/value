@@ -26,6 +26,14 @@ mod tests {
     use super::*;
     use crate::rgb::RGB;
 
+    fn get_rgb(value: & dyn MyAny) -> Option<&RGB> {
+        let myval = value.as_any().downcast_ref::<Wrapper<RGB>>();
+        match myval {
+            Some(Wrapper(rgb)) => Some(rgb),
+            _ => None
+        }
+    }
+
     #[test]
     fn using_wrapper() {
         let x: Wrapper<RGB> = Wrapper(RGB::new(1,2,3));
@@ -36,5 +44,9 @@ mod tests {
         assert_eq!(myvar.to_string(), "#010203".to_string());
 
         assert_eq!(myvar.0.to_string(), "#010203".to_string());
+
+        let a: &dyn MyAny = &x;
+        let rgb = get_rgb(a).unwrap();
+        assert_eq!(rgb, &RGB::new(1,2,3));
     }
 }
