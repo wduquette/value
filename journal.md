@@ -1,5 +1,14 @@
 # MoltValue thoughts
 
+## 2019-06-05
+*   Added RGB, as a type that supports FromStr and std::fmt::Display.
+*   Implemented MyAny that supports std::fmt::Display
+    *   See my_any.rs.
+    *   Define a struct that implements std::fmt::Display, e.g., MyType.
+    *   Wrapper(MyType) can be saved as a `dyn MyAny`.
+    *   The `dyn MyAny` support to_string().
+    *   And can be downcast to Wrapper<MyType> again.  Woohoo!
+
 ## 2019-06-03
 *   Implementing string conversion in Rust:
     *   To implement conversion of a type into a string, it should implement the
