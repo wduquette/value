@@ -13,7 +13,15 @@
 *   Not as easily as I thought.
 *   Sudden realization: Using Option<Datum> is goofy.  Just add Datum::None, and
     lose the Option. (Done)
-    
+*   Before integrating MyAny fully, I think I need to put Datum::List back in.
+    *   I'm worried that my RefCell code is only working because I can `Copy`
+        ints and floats.
+    *   Nope, using MyList directly works just fine, because I'm returning a clone
+        of an Rc<MyList>.
+*   The problem is that I'm getting an Rc<MyAny> out of the Datum, and what I
+    want to return is an Rc<T>.
+    *   Can I save an Rc<T> as a MyAny, and downcast to get that?
+
 ## 2019-06-03
 *   Implementing string conversion in Rust:
     *   To implement conversion of a type into a string, it should implement the

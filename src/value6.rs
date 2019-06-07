@@ -30,11 +30,14 @@ impl<T: 'static + std::fmt::Display> std::fmt::Display for MyWrapper<T> {
 //-----------------------------------------------------------------------------
 // Datum enum: a sum type for the different kinds of data_reps.
 
+pub type MyList = Vec<MyValue>;
+
 #[derive(Clone,Debug)]
 enum Datum {
     Int(i64),
     Flt(f64),
-    Other(Rc<dyn MyAny>),
+    List(Rc<MyList>),
+    // Other(Rc<dyn MyAny>),
     None
 }
 
@@ -132,6 +135,29 @@ impl MyValue {
         }
     }
 
+    // A new value, (none,list)
+    pub fn from_list(list: MyList) -> MyValue {
+        MyValue {
+            string_rep: RefCell::new(None),
+            data_rep: RefCell::new(Datum::List(Rc::new(list))),
+        }
+    }
+
+    // Incomplete: should try to parse the string_rep, if any, as a list.  But I don't
+    // have a list parser in this project.
+    pub fn to_list(&self) -> Result<Rc<MyList>,String> {
+        let data_ref = self.data_rep.borrow_mut();
+
+        if let Datum::List(list) = &*data_ref {
+            Ok(list.clone())
+        // } else if let Some(_str) = &self.string_rep {
+        //     panic!("list string_rep not defined!");
+        } else {
+            Err("Not a list".to_string())
+        }
+    }
+
+
     // // A new value, (none,other)
     // // Hmmmm: not using MyWrapper.  Does that matter?
     // pub fn from_other(value: Rc<dyn MyAny>) -> MyValue {
@@ -201,8 +227,6 @@ mod tests {
 
         let val = MyValue::from_string("abc");
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
-
-
     }
 
     #[test]
@@ -219,6 +243,24 @@ mod tests {
 
         let val = MyValue::from_string("abc");
         assert_eq!(val.to_float(), Err("Not a float".to_string()));
+    }
+
+    #[test]
+    fn from_to_list() {
+        let a = MyValue::from_string("abc");
+        let b = MyValue::from_float(12.5);
+        let listval = MyValue::from_list(vec!(a.clone(), b.clone()));
+
+        // Get it back as Rc<MyList>
+        let result = listval.to_list();
+
+        assert!(result.is_ok());
+
+        if let Ok(rclist) = result {
+            assert_eq!(rclist.len(), 2);
+            assert_eq!(rclist[0].to_string(), a.to_string());
+            assert_eq!(rclist[1].to_string(), b.to_string());
+        }
     }
 
     use crate::rgb::RGB;
