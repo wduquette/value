@@ -10,7 +10,10 @@
     *   And can be downcast to Wrapper<MyType> again.  Woohoo!
 *   Extended it to show how to write `get_mytype` functions.
 *   Next step: see if I can integrate this into MyValue!
-
+*   Not as easily as I thought.
+*   Sudden realization: Using Option<Datum> is goofy.  Just add Datum::None, and
+    lose the Option. (Done)
+    
 ## 2019-06-03
 *   Implementing string conversion in Rust:
     *   To implement conversion of a type into a string, it should implement the
