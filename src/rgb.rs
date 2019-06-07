@@ -40,6 +40,7 @@ impl fmt::Display for RGB {
         write!(f, "#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
