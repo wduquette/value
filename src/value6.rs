@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+use std::fmt::Display;
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -6,13 +8,13 @@ use std::rc::Rc;
 // The MyAny Trait and MyWrapper: a tool for handling external types.
 // A MyWrapper<T> can be saved as a dyn MyAny.
 
-pub trait MyAny: Any + std::fmt::Display + std::fmt::Debug {
+pub trait MyAny: Any + Display + Debug {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn into_any(self: Box<Self>) -> Box<dyn Any>;
 }
 
-impl<T: Any + std::fmt::Display + std::fmt::Debug> MyAny for T {
+impl<T: Any + Display + Debug> MyAny for T {
     fn as_any(&self) -> &dyn Any { self }
     fn as_any_mut(&mut self) -> &mut dyn Any { self }
     fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
@@ -37,7 +39,10 @@ enum Datum {
     Int(i64),
     Flt(f64),
     List(Rc<MyList>),
-    // Other(Rc<dyn MyAny>),
+
+    // What I really want here is a MyAny, which happens to be an Rc<T>.
+    // Could I use a Box instead?
+    Other(Rc<MyAny>),
     None
 }
 
@@ -157,47 +162,37 @@ impl MyValue {
         }
     }
 
+    pub fn from_other<T: 'static>(value: T) -> MyValue
+        where T: Display + Debug
+    {
+        MyValue {
+            string_rep: RefCell::new(None),
+            data_rep: RefCell::new(Datum::Other(Rc::new(value)))
+        }
+    }
 
-    // // A new value, (none,other)
-    // // Hmmmm: not using MyWrapper.  Does that matter?
-    // pub fn from_other(value: Rc<dyn MyAny>) -> MyValue {
-    //     MyValue {
-    //         string_rep: RefCell::new(None),
-    //         data_rep: RefCell::new(Some(Datum::Other(value.clone()))),
-    //     }
-    // }
+    pub fn to_other<T: 'static>(&self) -> Result<Rc<T>, String>
+        where T: Display + Debug
+    {
+        let data_ref = self.data_rep.borrow();
 
-    // pub fn from_other<T: 'static +  Display + Debug>(value: Rc<MyWrapper<T>>) -> MyValue {
-    //     MyValue {
-    //         string_rep: RefCell::new(None),
-    //         data_rep: RefCell::new(Some(Datum::Other(value)))
-    //     }
-    // }
+        if let Datum::Other(other) = &*data_ref {
+            // other is an Rc<MyAny>.  It started as an Rc<RGB>.
+            // how can I turn it back into an Rc<RGB>?
+            let foo: Rc<MyAny> = other.clone();
+            println!("other={:?}", other);
 
-    // Tries to return the value as an int
-    // pub fn to_other<T: 'static>(&self) -> Result<&T,String> {
-        // let mut data_ref = self.data_rep.borrow_mut();
-        // // let string_ref = self.string_rep.borrow();
-        //
-        // if let Some(Datum::Other(other)) = &*data_ref {
-        //     let other = other.clone();
-        //     if let Some(myval) = other.as_any().downcast_ref::<T>() {
-        //         return Ok(myval);
-        //     }
-        // }
+            // This assumes that I've got Datum::Other(MyAny), which I'm
+            // downcasting back to Rc<T>; but I don't.
+            if let Some(myval) = dbg!(other.as_any().downcast_ref::<Rc<T>>()) {
+                return Ok(myval.clone());
+            }
+        }
 
-        // if let Some(str) = &*string_ref {
-        //     match str.parse::<i64>() {
-        //         Ok(int) => {
-        //             *data_ref = Some(Datum::Int(int));
-        //             Ok(int)
-        //         }
-        //         Err(_) => Err("Not an integer".to_string()),
-        //     }
-        // }
-    //
-    //     Err("Could not retrieve".to_string())
-    // }
+        // Do the string thing.
+
+        Err("TODO".to_string())
+    }
 }
 
 #[cfg(test)]
@@ -264,6 +259,20 @@ mod tests {
     }
 
     use crate::rgb::RGB;
+
+    #[test]
+    fn from_to_rgb() {
+        let rgb = RGB::new(1,2,3);
+
+        let myval = MyValue::from_other(rgb);
+
+        // Get it back as Rc<RGB>
+        let result = dbg!(myval.to_other::<RGB>());
+        assert!(result.is_ok()); // Fails here.
+
+        let rgb2 = result.unwrap();
+        assert_eq!(rgb, *rgb2);
+    }
 
     fn get_rgb(value: & dyn MyAny) -> Option<&RGB> {
         let myval = value.as_any().downcast_ref::<MyWrapper<RGB>>();
