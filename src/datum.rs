@@ -21,22 +21,21 @@ enum Datum {
     None
 }
 
-    fn to_other<T: 'static>(datum: &Datum) -> Rc<T>
-        where T: Display + Debug
-    {
-        if let Datum::Other(other) = datum {
-            // other is an &Rc<MyAny>
-            // Here I cannot successfully downcast
-            let result = (**other).as_any().downcast_ref::<Rc<T>>();
-            println!("datum to_other: result={:?}", result);
+fn to_other<T: 'static>(datum: &Datum) -> Rc<T>
+    where T: Display + Debug
+{
+    if let Datum::Other(other) = datum {
+        // other is an &Rc<MyAny>
+        let result = (**other).as_any().downcast_ref::<Rc<T>>();
+        println!("datum to_other: result={:?}", result);
 
-            let out: Rc<T> = result.unwrap().clone();
-            // it worked!
-            return out;
-        } else {
-            panic!("failure in to_other");
-        }
+        let out: Rc<T> = result.unwrap().clone();
+        // it worked!
+        return out;
+    } else {
+        panic!("failure in to_other");
     }
+}
 
 #[cfg(test)]
 mod tests {
