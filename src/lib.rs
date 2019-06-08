@@ -50,5 +50,9 @@ mod value6;
 // the `MyAny` as `Rc<T>`.
 mod datum;
 
-// Next steps
+// Extended datum.rs to allow returning Result<Rc<T>, String> from a function.
 mod datum2;
+
+// Revised the MyValue::to_other method accordingly.  It now returns
+// Rc<T> successfully.
+mod value7;

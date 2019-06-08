@@ -9,9 +9,6 @@
 ## 2019-06-07
 *   Continue working with Datum to handle Datum::Other properly.
     *   Specific things I need to do for Data::Other
-        *   Verify that we can return Rc<T> successfully, when just pass a &Datum
-            to a function. (DONE)
-        *   Verify that we can return Rc<T> successfully in a MyValue method.
         *   Verify that MyValue::to_string() can convert Datum::Other to string
             when needed.
         *   Verify that we can do the whole shimmer dance on to_other.
@@ -20,6 +17,16 @@
             *   Save new data_rep.
         *   See if we can support Datum::Other in a way that doesn't
             involve nested Rc<>'s.
+    *   Verified that we can return Rc<T> successfully, when just pass a &Datum
+        to a function.
+    *   Verified that we can return Rc<T> successfully in a MyValue method.
+    *   Implemented std::fmt::Display for Datum.
+    *   Extended MyValue::to_int and MyValue::to_float to do the whole shimmer logic:
+        *   Return the data_rep if it is available and the right type.
+        *   Otherwise, produce the string_rep if it doesn't exist.
+        *   Then attempt to parse the string_rep for the desired type.
+        *   On success, update the data_rep and return the value.
+        *   On failure, return an error.
 
 ## 2019-06-05
 *   Added RGB, as a type that supports FromStr and std::fmt::Display.
