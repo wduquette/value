@@ -14,3 +14,5 @@ pub mod value6;
 pub mod rgb;
 #[allow(dead_code)]
 pub mod my_any;
+#[allow(dead_code)]
+pub mod datum;

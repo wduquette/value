@@ -21,6 +21,13 @@
 *   The problem is that I'm getting an Rc<MyAny> out of the Datum, and what I
     want to return is an Rc<T>.
     *   Can I save an Rc<T> as a MyAny, and downcast to get that?
+*   I have code that looks like it should work.
+    *   If I have a Datum::Other(), it works.
+    *   If I have a &Datum::Other(), it doesn't.
+    *   I dunno why.
+*   Pulled the Datum code into a separate module; and there it seems to be
+    working.  (?)
+    *   More tomorrow.
 
 ## 2019-06-03
 *   Implementing string conversion in Rust:
