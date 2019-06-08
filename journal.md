@@ -1,5 +1,26 @@
 # MoltValue thoughts
 
+## Things to remember to do
+
+*   Make MyValue implement std::fmt::Display.
+    *   This replaces the explicit to_string() method.
+*   Make MyValue implement std::fmt::Debug.
+
+## 2019-06-07
+*   Continue working with Datum to handle Datum::Other properly.
+    *   Specific things I need to do for Data::Other
+        *   Verify that we can return Rc<T> successfully, when just pass a &Datum
+            to a function. (DONE)
+        *   Verify that we can return Rc<T> successfully in a MyValue method.
+        *   Verify that MyValue::to_string() can convert Datum::Other to string
+            when needed.
+        *   Verify that we can do the whole shimmer dance on to_other.
+            *   Convert existing data_rep to string_rep if need be.
+            *   Parse string_rep to get new data_rep if need be.
+            *   Save new data_rep.
+        *   See if we can support Datum::Other in a way that doesn't
+            involve nested Rc<>'s.
+
 ## 2019-06-05
 *   Added RGB, as a type that supports FromStr and std::fmt::Display.
 *   Implemented MyAny that supports std::fmt::Display
