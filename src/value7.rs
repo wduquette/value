@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::any::Any;
@@ -216,10 +217,10 @@ impl MyValue {
     // their own appropriate error message.  (This method doesn't know what
     // to call type T in the error message.)
     pub fn to_other<T: 'static>(&self) -> Result<Rc<T>, String>
-        where T: Display + Debug
+        where T: Display + Debug + FromStr
     {
-        // let string_ref = self.string_rep.borrow_mut();
-        let data_ref = self.data_rep.borrow();
+        let mut string_ref = self.string_rep.borrow_mut();
+        let mut data_ref = self.data_rep.borrow_mut();
 
         // FIRST, if we have the desired type, return it.
         if let Datum::Other(other) = &*data_ref {
@@ -233,20 +234,24 @@ impl MyValue {
             }
         }
 
-        // NEXT, if we don't have the string_rep, create it.
-        // TODO
-        // if string_ref.is_none() {
-        //     // TODO: Need to figure out how to convert a Datum to a string.
-        //     // Probably just implement std::fmt::Display for a Datum.
-        //     let str: String = data_ref.to_string();
-        //     *string_ref = Some(Rc::new(str));
-        // }
+        // NEXT, if we don't have a string_rep, get one.
+        if (*string_ref).is_none() {
+            *string_ref = Some(Rc::new(data_ref.to_string()));
+        }
 
         // NEXT, can we parse it as a T?  If so, save it back to
         // the data_rep, and return it.
+        if let Some(str) = &*string_ref {
+            if let Ok(tval) = str.parse::<T>() {
+                let tval = Rc::new(tval);
+                let out = tval.clone();
+                *data_ref = Datum::Other(Rc::new(tval));
+                return Ok(out);
+            }
+        }
 
         // NEXT, we couldn't do it; return an error.
-        Err("TODO".to_string())
+        Err("TODO, not a T".to_string())
     }
 }
 
@@ -333,10 +338,18 @@ mod tests {
 
         // Get it back as Rc<RGB>
         let result = myval.to_other::<RGB>();
-        assert!(result.is_ok()); // Fails here.
+        assert!(result.is_ok());
 
         let rgb2 = result.unwrap();
         assert_eq!(rgb, *rgb2);
+
+        let myval = MyValue::from_string("#010203");
+        let result = myval.to_other::<RGB>();
+        assert!(result.is_ok());
+
+        let rgb2 = result.unwrap();
+        assert_eq!(rgb, *rgb2);
+
     }
 
     fn get_rgb(value: & dyn MyAny) -> Option<&RGB> {
