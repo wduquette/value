@@ -2,10 +2,13 @@
 
 ## Things to remember to do
 
-*   Determine: is it possible for the "to_*" methods to return a borrow
+*   Determine: is it possible for the "to_*" methods to return an immutable borrow
     with a lifetime the same as the MoltValue?
     *   For the string_rep, that would work, if I can figure out how to do it.
-    *   For the data_rep it won't, because the data_rep could change.
+    *   For the data_rep it might not, because the data_rep could change.
+        Or maybe it would....
+    *   Looks like it might work.  See answer to question:
+        https://users.rust-lang.org/t/returning-immutable-references-with-option-refcell/29130
 *   Determine: is it possible to convert an Rc<Any> to an Rc<T>?
 *   Figure out what the API for defining/using a user type should look like.
     *   You'd want to wrap from_other and to_other.
@@ -54,6 +57,7 @@
     *   Hmmm.  Easy for simple string fields, but harder for more complicated cases.
         *   Question at users.rust-lang.org:
         https://users.rust-lang.org/t/returning-immutable-references-with-option-refcell/29130
+    *   And got an answer!  It turns out to be fairly straightforward.
 
 ## 2019-06-07
 *   Continue working with Datum to handle Datum::Other properly.
