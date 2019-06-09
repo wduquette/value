@@ -54,5 +54,9 @@ mod datum;
 mod datum2;
 
 // Revised the MyValue::to_other method accordingly.  It now returns
-// Rc<T> successfully.
+// Rc<T> successfully.  Also, added the full shimmer logic for everything
+// but Datum::List (since I don't have a string_rep for that at the moment).
 mod value7;
+
+// Preparing for use.
+mod value8;
