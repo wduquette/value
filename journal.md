@@ -8,9 +8,6 @@
     *   Probably want to handle ints/floats/lists equivalently.
         *   However, implementing Deref on non-smart-pointers is considered
             bad practice.
-*   Make MyValue implement std::fmt::Display.
-    *   This replaces the explicit to_string() method.
-*   Make MyValue implement std::fmt::Debug.
 
 ## 2019-06-07
 *   Continue working with Datum to handle Datum::Other properly.
@@ -30,6 +27,12 @@
     *   Verified that MyValue::to_string() can convert Datum::Other to string
         when needed.
     *   Verified that we can do the whole shimmer dance on to_other.
+*   As value8.rs, began cleaning up the code to produce MoltValue.
+    *   Removed MyWrapper, as we didn't seem to need it.
+    *   Renamed "My*" to "Molt*".
+    *   Replaced MoltValue::to_string() with "impl Display for MoltValue".
+    *   Don't need to implement FromStr: you don't parse a string to get a
+        MoltValue; you just provide a string.
 
 ## 2019-06-05
 *   Added RGB, as a type that supports FromStr and std::fmt::Display.

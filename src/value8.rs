@@ -6,74 +6,34 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 //-----------------------------------------------------------------------------
-// The MyAny Trait and MyWrapper: a tool for handling external types.
-// A MyWrapper<T> can be saved as a dyn MyAny.
+// Public Data Types
 
-pub trait MyAny: Any + Display + Debug {
-    fn as_any(&self) -> &dyn Any;
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-    fn into_any(self: Box<Self>) -> Box<dyn Any>;
-}
+/// The standard Molt list representation, a vector of MoltValues.
+///
+/// TODO: Consider making this a newtype.
+pub type MoltList = Vec<MoltValue>;
 
-impl<T: Any + Display + Debug> MyAny for T {
-    fn as_any(&self) -> &dyn Any { self }
-    fn as_any_mut(&mut self) -> &mut dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
-}
 
-//-----------------------------------------------------------------------------
-// Datum enum: a sum type for the different kinds of data_reps.
-
-pub type MyList = Vec<MyValue>;
+/// The standard Molt value representation.  Variable values and list elements
+/// are MoltValues.
+///
+/// TODO: Define other needed traits.
 
 #[derive(Clone,Debug)]
-enum Datum {
-    Int(i64),
-    Flt(f64),
-    List(Rc<MyList>),
-
-    // What I really want here is a MyAny, which happens to be an Rc<T>.
-    // Could I use a Box instead?
-    Other(Rc<MyAny>),
-    None
-}
-
-// TODO: needs to provide standard TCL list output.
-impl Display for Datum {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Datum::Int(int) => write!(f, "{}", int),
-            Datum::Flt(flt) => write!(f, "{}", flt),
-            Datum::List(_) => write!(f, "*FAKE LIST*"),
-            Datum::Other(other) => write!(f, "{}", other),
-            Datum::None => write!(f, ""),
-        }
-    }
-}
-
-#[derive(Clone,Debug)]
-pub struct MyValue {
+pub struct MoltValue {
     string_rep: RefCell<Option<Rc<String>>>,
     data_rep: RefCell<Datum>,
 }
 
-impl MyValue {
-    // A new value (string,none)
-    pub fn from_string(str: &str) -> MyValue {
-        MyValue {
-            string_rep: RefCell::new(Some(Rc::new(str.to_string()))),
-            data_rep: RefCell::new(Datum::None),
-        }
-    }
 
-    pub fn to_string(&self) -> Rc<String> {
+impl Display for MoltValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         // FIRST, if there's already a string, return it.
         let mut string_ref = self.string_rep.borrow_mut();
 
         if let Some(str) = &*string_ref {
-            return str.clone();
+            return write!(f, "{}", str);
         }
-
 
         // NEXT, if there's no string there must be data.  Convert the data to a string,
         // and save it for next time.
@@ -86,12 +46,22 @@ impl MyValue {
 
         *string_ref = Some(new_string.clone());
 
-        new_string
+        return write!(f, "{}", new_string)
+    }
+}
+
+impl MoltValue {
+    // A new value (string,none)
+    pub fn from_string(str: &str) -> MoltValue {
+        MoltValue {
+            string_rep: RefCell::new(Some(Rc::new(str.to_string()))),
+            data_rep: RefCell::new(Datum::None),
+        }
     }
 
     // A new value, (none,int)
-    pub fn from_int(int: i64) -> MyValue {
-        MyValue {
+    pub fn from_int(int: i64) -> MoltValue {
+        MoltValue {
             string_rep: RefCell::new(None),
             data_rep: RefCell::new(Datum::Int(int)),
         }
@@ -130,8 +100,8 @@ impl MyValue {
     }
 
     // A new value, (none,float)
-    pub fn from_float(flt: f64) -> MyValue {
-        MyValue {
+    pub fn from_float(flt: f64) -> MoltValue {
+        MoltValue {
             string_rep: RefCell::new(None),
             data_rep: RefCell::new(Datum::Flt(flt)),
         }
@@ -170,8 +140,8 @@ impl MyValue {
     }
 
     // A new value, (none,list)
-    pub fn from_list(list: MyList) -> MyValue {
-        MyValue {
+    pub fn from_list(list: MoltList) -> MoltValue {
+        MoltValue {
             string_rep: RefCell::new(None),
             data_rep: RefCell::new(Datum::List(Rc::new(list))),
         }
@@ -179,7 +149,7 @@ impl MyValue {
 
     // Incomplete: should try to parse the string_rep, if any, as a list.  But I don't
     // have a list parser in this project.
-    pub fn to_list(&self) -> Result<Rc<MyList>,String> {
+    pub fn to_list(&self) -> Result<Rc<MoltList>,String> {
         let data_ref = self.data_rep.borrow_mut();
 
         if let Datum::List(list) = &*data_ref {
@@ -191,12 +161,12 @@ impl MyValue {
         }
     }
 
-    pub fn from_other<T: 'static>(value: T) -> MyValue
+    pub fn from_other<T: 'static>(value: T) -> MoltValue
         where T: Display + Debug
     {
-        MyValue {
+        MoltValue {
             string_rep: RefCell::new(None),
-            // Use Rc<Rc<T>> === Rc<MyAny>, so that Datum is known to be
+            // Use Rc<Rc<T>> === Rc<MoltAny>, so that Datum is known to be
             // clonable and the user's data is efficiently clonable and shareable.
             data_rep: RefCell::new(Datum::Other(Rc::new(Rc::new(value))))
         }
@@ -214,7 +184,7 @@ impl MyValue {
 
         // FIRST, if we have the desired type, return it.
         if let Datum::Other(other) = &*data_ref {
-            // other is an &Rc<MyAny>
+            // other is an &Rc<MoltAny>
             let result = (**other).as_any().downcast_ref::<Rc<T>>();
 
             if result.is_some() {
@@ -245,13 +215,59 @@ impl MyValue {
     }
 }
 
+//-----------------------------------------------------------------------------
+// The MoltAny Trait: a tool for handling external types.
+
+// TODO: Does this need to be pub?
+pub trait MoltAny: Any + Display + Debug {
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+    fn into_any(self: Box<Self>) -> Box<dyn Any>;
+}
+
+impl<T: Any + Display + Debug> MoltAny for T {
+    fn as_any(&self) -> &dyn Any { self }
+    fn as_any_mut(&mut self) -> &mut dyn Any { self }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
+}
+
+//-----------------------------------------------------------------------------
+// Datum enum: a sum type for the different kinds of data_reps.
+
+// The data representation for MoltValues that define data
+#[derive(Clone,Debug)]
+enum Datum {
+    Int(i64),
+    Flt(f64),
+    List(Rc<MoltList>),
+
+    // What I really want here is a MoltAny, which happens to be an Rc<T>.
+    // Could I use a Box instead?
+    Other(Rc<MoltAny>),
+    None
+}
+
+// TODO: needs to provide standard TCL list output.
+impl Display for Datum {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Datum::Int(int) => write!(f, "{}", int),
+            Datum::Flt(flt) => write!(f, "{}", flt),
+            Datum::List(_) => write!(f, "*FAKE LIST*"),
+            Datum::Other(other) => write!(f, "{}", other),
+            Datum::None => write!(f, ""),
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn from_to() {
-        let val = MyValue::from_string("abc");
+        let val = MoltValue::from_string("abc");
         assert_eq!(*val.to_string(), "abc".to_string());
 
         let val2 = val.clone();
@@ -260,12 +276,12 @@ mod tests {
 
     #[test]
     fn from_to_int() {
-        let val = MyValue::from_int(5);
+        let val = MoltValue::from_int(5);
         assert_eq!(*val.to_string(), "5".to_string());
         assert_eq!(val.to_int(), Ok(5));
         assert_eq!(val.to_float(), Ok(5.0));
 
-        let val = MyValue::from_string("7");
+        let val = MoltValue::from_string("7");
         assert_eq!(*val.to_string(), "7".to_string());
         assert_eq!(val.to_int(), Ok(7));
         assert_eq!(val.to_float(), Ok(7.0));
@@ -273,41 +289,41 @@ mod tests {
         // TODO: Note, 7.0 might not get converted to "7" long term.
         // In Standard TCL, its string_rep would be "7.0".  Need to address
         // MoltFloat formatting/parsing.
-        let val = MyValue::from_float(7.0);
+        let val = MoltValue::from_float(7.0);
         assert_eq!(*val.to_string(), "7".to_string());
         assert_eq!(val.to_int(), Ok(7));
         assert_eq!(val.to_float(), Ok(7.0));
 
-        let val = MyValue::from_string("abc");
+        let val = MoltValue::from_string("abc");
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
     }
 
     #[test]
     fn from_to_float() {
-        let val = MyValue::from_float(12.5);
+        let val = MoltValue::from_float(12.5);
         assert_eq!(*val.to_string(), "12.5".to_string());
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
         assert_eq!(val.to_float(), Ok(12.5));
 
-        let val = MyValue::from_string("7.8");
+        let val = MoltValue::from_string("7.8");
         assert_eq!(*val.to_string(), "7.8".to_string());
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
         assert_eq!(val.to_float(), Ok(7.8));
 
-        let val = MyValue::from_int(5);
+        let val = MoltValue::from_int(5);
         assert_eq!(val.to_float(), Ok(5.0));
 
-        let val = MyValue::from_string("abc");
+        let val = MoltValue::from_string("abc");
         assert_eq!(val.to_float(), Err("Not a float".to_string()));
     }
 
     #[test]
     fn from_to_list() {
-        let a = MyValue::from_string("abc");
-        let b = MyValue::from_float(12.5);
-        let listval = MyValue::from_list(vec!(a.clone(), b.clone()));
+        let a = MoltValue::from_string("abc");
+        let b = MoltValue::from_float(12.5);
+        let listval = MoltValue::from_list(vec!(a.clone(), b.clone()));
 
-        // Get it back as Rc<MyList>
+        // Get it back as Rc<MoltList>
         let result = listval.to_list();
 
         assert!(result.is_ok());
@@ -324,7 +340,7 @@ mod tests {
     #[test]
     fn from_to_rgb() {
         let rgb = RGB::new(1,2,3);
-        let myval = MyValue::from_other(rgb);
+        let myval = MoltValue::from_other(rgb);
 
         // Get it back as Rc<RGB>
         let result = myval.to_other::<RGB>();
@@ -333,7 +349,7 @@ mod tests {
         let rgb2 = result.unwrap();
         assert_eq!(rgb, *rgb2);
 
-        let myval = MyValue::from_string("#010203");
+        let myval = MoltValue::from_string("#010203");
         let result = myval.to_other::<RGB>();
         assert!(result.is_ok());
 
