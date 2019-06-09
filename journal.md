@@ -2,18 +2,20 @@
 
 ## Things to remember to do
 
-*   To ponder:
-*   Determine: is it possible for the "to_{cloneable}" methods to return a borrow
+*   Determine: is it possible for the "to_*" methods to return a borrow
     with a lifetime the same as the MoltValue?
     *   For the string_rep, that would work, if I can figure out how to do it.
     *   For the data_rep it won't, because the data_rep could change.
+*   Determine: is it possible to convert an Rc<Any> to an Rc<T>?
 *   Figure out what the API for defining/using a user type should look like.
     *   You'd want to wrap from_other and to_other.
     *   Probably individual functions, but could be defined on the user_type struct.
 *   Integration
     *   See the "TODO's" in value8.rs: spots where existing Molt code needs to link up.
     *   Use Molt's get_int() logic when converting string_rep to int.
-        *   Probably the only place this code needs to exist.
+        *   Probably the only place this code needs to exist, other than in `expr` (since
+            there are some special details there).
+        *   And note that MoltValue will replace the `get_*` methods/functions.
     *   Use Molt's float formatting (which is not yet written) when converting
         Datum::Flt() to string.
         *   Again, probably the only place this code needs to exist.
@@ -46,6 +48,12 @@
     *   TCL programmers would use TCL commands.
     *   Rust programmers would extract values and do things in Rust.
     *   You don't know what "+" should mean until you extract the data in the desired form.
+*   See datum3.rs for an example of how to return the string_rep as an immutable borrow.
+    This is much better than returning an Rc<String>.  Look into how to do this for all
+    the types.
+    *   Hmmm.  Easy for simple string fields, but harder for more complicated cases.
+        *   Question at users.rust-lang.org:
+        https://users.rust-lang.org/t/returning-immutable-references-with-option-refcell/29130
 
 ## 2019-06-07
 *   Continue working with Datum to handle Datum::Other properly.

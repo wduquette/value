@@ -60,3 +60,9 @@ mod value7;
 
 // Preparing for use.
 mod value8;
+
+// Extracting references rather than Rc's
+mod datum3;
+
+// Trying to return immutable borrows rather than Rc's.
+mod value9;
