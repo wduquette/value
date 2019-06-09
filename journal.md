@@ -2,27 +2,50 @@
 
 ## Things to remember to do
 
+*   To ponder:
 *   Determine: is it possible for the "to_{cloneable}" methods to return a borrow
     with a lifetime the same as the MoltValue?
     *   For the string_rep, that would work, if I can figure out how to do it.
     *   For the data_rep it won't, because the data_rep could change.
-*   Implement Eq or PartialEq (whatever's needed) so that you can compare two
-    MoltValues.  (Based on string_rep).
 *   Figure out what the API for defining/using a user type should look like.
     *   You'd want to wrap from_other and to_other.
     *   Probably individual functions, but could be defined on the user_type struct.
-    *   Probably want to handle ints/floats/lists equivalently.
-        *   However, implementing Deref on non-smart-pointers is considered
-            bad practice.
-*   The MoltValue functions return errors as Result<_,String>; they should be
-    Result<_,ResultCode>.
-    *   And ResultCode should probably include `Error(MoltValue)` and
-        `Return(MoltValue)` instead of String.
-*   Figure out how best to define MoltFloat and MoltInt for formatting and parsing.
-    *   Standard formatting is fine for MoltInt, but parsing needs to take the
-        different integer formats into account.
-    *   Standard parsing may be fine for MoltFloat, but formatting needs to be done
-        to ensure that we can get the same MoltFloat back.
+*   Integration
+    *   See the "TODO's" in value8.rs: spots where existing Molt code needs to link up.
+    *   Use Molt's get_int() logic when converting string_rep to int.
+        *   Probably the only place this code needs to exist.
+    *   Use Molt's float formatting (which is not yet written) when converting
+        Datum::Flt() to string.
+        *   Again, probably the only place this code needs to exist.
+    *   Use Molt's list parsing and formatting for Datum::List.
+    *   The MoltValue functions return errors as Result<_,String>; they should be
+        Result<_,ResultCode>.
+    *   And ResultCode should use `Error(MoltValue)` and `Return(MoltValue)` instead of String.
+
+## 2019-06-08
+*   Looked into defining MoltInt and MoltFloat as newtypes.
+    *   Doable but tricky.
+    *   There are MANY numeric traits; I'm not sure what the full list would be.
+    *   Any implementation that I would do would be sufficiently complicated that
+        I'm not sure I'd have faith in it, and I certainly wouldn't know where the
+        holes were.
+    *   All I'm really wanting to provide is special parsing for ints and special
+        output for floats.  It's probably easier to provide the individual functions
+        rather than trying to use FromStr and Display in this case.
+    *   The same applies to MoltList.
+    *   The conversion to and from strings should be localized in MoltValue for all
+        of these types; once it's there, Rust code should just work with MoltValues, and it
+        should all just work.
+*   Do we want to define Eq or PartialEq on MoltValue? NO.
+    *   It would have to be based on the string_rep.
+    *   We compare in expressions and in some commands like "string equals".
+    *   Rust code would normally extract the content in the desired form and use
+        normal Rust comparisons.
+    *   So, NO.  We don't.
+*   Are there operators we'd like to define on MoltValue? E.g., "+" for concatenation? NO.
+    *   TCL programmers would use TCL commands.
+    *   Rust programmers would extract values and do things in Rust.
+    *   You don't know what "+" should mean until you extract the data in the desired form.
 
 ## 2019-06-07
 *   Continue working with Datum to handle Datum::Other properly.

@@ -8,10 +8,8 @@ use std::str::FromStr;
 //-----------------------------------------------------------------------------
 // Public Data Types
 
-/// The standard Molt list representation, a vector of MoltValues.
-///
-/// TODO: Consider making these newtypes, so that we can implement Display
-/// and FromStr for them.
+// The standard Molt data types.
+// Provide doc comments.
 pub type MoltList = Vec<MoltValue>;
 pub type MoltInt = i64;
 pub type MoltFloat = f64;
@@ -19,7 +17,8 @@ pub type MoltFloat = f64;
 /// The standard Molt value representation.  Variable values and list elements
 /// are MoltValues.
 ///
-/// TODO: Define other needed traits.
+/// TODO: Define other needed traits.  At least define Hash, which would hash on
+/// the string_rep.
 
 #[derive(Clone, Debug)]
 pub struct MoltValue {
@@ -28,6 +27,7 @@ pub struct MoltValue {
 }
 
 // The data representation for MoltValues that define data
+// TODO: flesh out comments.
 #[derive(Clone, Debug)]
 enum Datum {
     Int(MoltInt),
