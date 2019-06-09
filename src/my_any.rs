@@ -1,6 +1,5 @@
 use std::any::Any;
 
-
 trait MyAny: Any + std::fmt::Display {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
@@ -8,9 +7,15 @@ trait MyAny: Any + std::fmt::Display {
 }
 
 impl<T: Any + std::fmt::Display> MyAny for T {
-    fn as_any(&self) -> &dyn Any { self }
-    fn as_any_mut(&mut self) -> &mut dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
 }
 
 struct Wrapper<T: ?Sized + std::fmt::Display>(T);
@@ -26,17 +31,17 @@ mod tests {
     use super::*;
     use crate::rgb::RGB;
 
-    fn get_rgb(value: & dyn MyAny) -> Option<&RGB> {
+    fn get_rgb(value: &dyn MyAny) -> Option<&RGB> {
         let myval = value.as_any().downcast_ref::<Wrapper<RGB>>();
         match myval {
             Some(Wrapper(rgb)) => Some(rgb),
-            _ => None
+            _ => None,
         }
     }
 
     #[test]
     fn using_wrapper() {
-        let x: Wrapper<RGB> = Wrapper(RGB::new(1,2,3));
+        let x: Wrapper<RGB> = Wrapper(RGB::new(1, 2, 3));
         let a: &dyn MyAny = &x;
         assert_eq!(a.to_string(), "#010203".to_string());
 
@@ -47,6 +52,6 @@ mod tests {
 
         let a: &dyn MyAny = &x;
         let rgb = get_rgb(a).unwrap();
-        assert_eq!(rgb, &RGB::new(1,2,3));
+        assert_eq!(rgb, &RGB::new(1, 2, 3));
     }
 }

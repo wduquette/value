@@ -1,18 +1,18 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-type MyHashMap = HashMap<MyValue,MyValue>;
+type MyHashMap = HashMap<MyValue, MyValue>;
 
 type MyList = Vec<MyValue>;
 
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum Datum {
     Int(i64),
     Flt(f64),
     List(Rc<MyList>),
 }
 
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct MyValue {
     string_rep: Option<Rc<String>>,
     data_rep: Option<Datum>,
@@ -34,7 +34,6 @@ impl MyValue {
             data_rep: data.data_rep.clone(),
         }
     }
-
 
     // A new value, (none,list)
     pub fn from_list(list: MyList) -> MyValue {
@@ -70,12 +69,12 @@ impl MyValue {
         match &self.data_rep {
             Some(Datum::Int(int)) => Rc::new(int.to_string()),
             Some(Datum::Flt(flt)) => Rc::new(flt.to_string()),
-            _ =>  Rc::new("".to_string()),
+            _ => Rc::new("".to_string()),
         }
     }
 
     // Not quite right.  If there's no datum, should try to parse string.
-    pub fn to_int(&self) -> Result<i64,String> {
+    pub fn to_int(&self) -> Result<i64, String> {
         if let Some(Datum::Int(int)) = self.data_rep {
             Ok(int)
         } else {
@@ -84,7 +83,7 @@ impl MyValue {
     }
 
     // Not quite right.  If there's no datum, should try to parse string.
-    pub fn to_flt(&self) -> Result<f64,String> {
+    pub fn to_flt(&self) -> Result<f64, String> {
         if let Some(Datum::Flt(flt)) = self.data_rep {
             Ok(flt)
         } else {
@@ -93,7 +92,7 @@ impl MyValue {
     }
 
     // Not quite right.  If there's no datum, should try to parse string.
-    pub fn to_list(&self) -> Result<Rc<MyList>,String> {
+    pub fn to_list(&self) -> Result<Rc<MyList>, String> {
         if let Some(Datum::List(list)) = &self.data_rep {
             Ok(list.clone())
         } else {
@@ -137,7 +136,7 @@ mod tests {
     fn from_to_list() {
         let a = MyValue::from_string("abc");
         let b = MyValue::from_float(12.5);
-        let listval = MyValue::from_list(vec!(a, b));
+        let listval = MyValue::from_list(vec![a, b]);
 
         // Get it back as Rc<MyList>
         let result = listval.to_list();

@@ -1,7 +1,7 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::fmt::Display;
 use std::fmt::Debug;
+use std::fmt::Display;
 use std::rc::Rc;
 
 //-----------------------------------------------------------------------------
@@ -15,9 +15,15 @@ pub trait MyAny: Any + std::fmt::Display + std::fmt::Debug {
 }
 
 impl<T: Any + std::fmt::Display + std::fmt::Debug> MyAny for T {
-    fn as_any(&self) -> &dyn Any { self }
-    fn as_any_mut(&mut self) -> &mut dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
 }
 
 #[derive(Debug)]
@@ -32,14 +38,14 @@ impl<T: 'static + std::fmt::Display> std::fmt::Display for MyWrapper<T> {
 //-----------------------------------------------------------------------------
 // Datum enum: a sum type for the different kinds of data_reps.
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 enum Datum {
     Int(i64),
     Flt(f64),
-    Other(Rc<dyn MyAny>)
+    Other(Rc<dyn MyAny>),
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct MyValue {
     string_rep: RefCell<Option<Rc<String>>>,
     data_rep: RefCell<Option<Datum>>,
@@ -62,14 +68,13 @@ impl MyValue {
             return str.clone();
         }
 
-
         // NEXT, if there's no string there must be data.  Convert the data to a string,
         // and save it for next time.
         let data_ref = self.data_rep.borrow();
         let new_string = match *data_ref {
             Some(Datum::Int(int)) => Rc::new(int.to_string()),
             Some(Datum::Flt(flt)) => Rc::new(flt.to_string()),
-            _ =>  Rc::new("".to_string()),
+            _ => Rc::new("".to_string()),
         };
 
         *string_ref = Some(new_string.clone());
@@ -86,7 +91,7 @@ impl MyValue {
     }
 
     // Tries to return the value as an int
-    pub fn to_int(&self) -> Result<i64,String> {
+    pub fn to_int(&self) -> Result<i64, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let string_ref = self.string_rep.borrow();
 
@@ -114,7 +119,7 @@ impl MyValue {
     }
 
     // Tries to return the value as a float
-    pub fn to_float(&self) -> Result<f64,String> {
+    pub fn to_float(&self) -> Result<f64, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let string_ref = self.string_rep.borrow();
 
@@ -142,15 +147,15 @@ impl MyValue {
     //     }
     // }
 
-    pub fn from_other<T: 'static +  Display + Debug>(value: Rc<MyWrapper<T>>) -> MyValue {
+    pub fn from_other<T: 'static + Display + Debug>(value: Rc<MyWrapper<T>>) -> MyValue {
         MyValue {
             string_rep: RefCell::new(None),
-            data_rep: RefCell::new(Some(Datum::Other(value)))
+            data_rep: RefCell::new(Some(Datum::Other(value))),
         }
     }
 
     // Tries to return the value as an int
-    pub fn to_other<T: 'static>(&self) -> Result<&T,String> {
+    pub fn to_other<T: 'static>(&self) -> Result<&T, String> {
         // let mut data_ref = self.data_rep.borrow_mut();
         // // let string_ref = self.string_rep.borrow();
         //
@@ -202,8 +207,6 @@ mod tests {
 
         let val = MyValue::from_string("abc");
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
-
-
     }
 
     #[test]
@@ -224,17 +227,17 @@ mod tests {
 
     use crate::rgb::RGB;
 
-    fn get_rgb(value: & dyn MyAny) -> Option<&RGB> {
+    fn get_rgb(value: &dyn MyAny) -> Option<&RGB> {
         let myval = value.as_any().downcast_ref::<MyWrapper<RGB>>();
         match myval {
             Some(MyWrapper(rgb)) => Some(rgb),
-            _ => None
+            _ => None,
         }
     }
 
     #[test]
     fn using_wrapper() {
-        let x: MyWrapper<RGB> = MyWrapper(RGB::new(1,2,3));
+        let x: MyWrapper<RGB> = MyWrapper(RGB::new(1, 2, 3));
         let a: &dyn MyAny = &x;
         assert_eq!(a.to_string(), "#010203".to_string());
 
@@ -245,7 +248,7 @@ mod tests {
 
         let a: &dyn MyAny = &x;
         let rgb = get_rgb(a).unwrap();
-        assert_eq!(rgb, &RGB::new(1,2,3));
+        assert_eq!(rgb, &RGB::new(1, 2, 3));
     }
 
 }

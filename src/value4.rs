@@ -2,17 +2,17 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-type MyHashMap = HashMap<MyValue,MyValue>;
+type MyHashMap = HashMap<MyValue, MyValue>;
 
 type MyList = Vec<MyValue>;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 enum Datum {
     Int(i64),
     Flt(f64),
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct MyValue {
     string_rep: RefCell<Option<Rc<String>>>,
     data_rep: RefCell<Option<Datum>>,
@@ -35,14 +35,13 @@ impl MyValue {
             return str.clone();
         }
 
-
         // NEXT, if there's no string there must be data.  Convert the data to a string,
         // and save it for next time.
         let data_ref = self.data_rep.borrow();
         let new_string = match *data_ref {
             Some(Datum::Int(int)) => Rc::new(int.to_string()),
             Some(Datum::Flt(flt)) => Rc::new(flt.to_string()),
-            _ =>  Rc::new("".to_string()),
+            _ => Rc::new("".to_string()),
         };
 
         *string_ref = Some(new_string.clone());
@@ -59,7 +58,7 @@ impl MyValue {
     }
 
     // Tries to return the value as an int
-    pub fn to_int(&self) -> Result<i64,String> {
+    pub fn to_int(&self) -> Result<i64, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let string_ref = self.string_rep.borrow();
 
@@ -87,7 +86,7 @@ impl MyValue {
     }
 
     // Tries to return the value as a float
-    pub fn to_float(&self) -> Result<f64,String> {
+    pub fn to_float(&self) -> Result<f64, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let string_ref = self.string_rep.borrow();
 
@@ -134,8 +133,6 @@ mod tests {
 
         let val = MyValue::from_string("abc");
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
-
-
     }
 
     #[test]

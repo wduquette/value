@@ -1,9 +1,9 @@
-use std::str::FromStr;
-use std::fmt::Debug;
-use std::fmt::Display;
 use std::any::Any;
 use std::cell::RefCell;
+use std::fmt::Debug;
+use std::fmt::Display;
 use std::rc::Rc;
+use std::str::FromStr;
 
 //-----------------------------------------------------------------------------
 // The MyAny Trait and MyWrapper: a tool for handling external types.
@@ -16,9 +16,15 @@ pub trait MyAny: Any + Display + Debug {
 }
 
 impl<T: Any + Display + Debug> MyAny for T {
-    fn as_any(&self) -> &dyn Any { self }
-    fn as_any_mut(&mut self) -> &mut dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
 }
 
 // Not clear that MyWrapper is needed for what I'm trying to do.
@@ -36,7 +42,7 @@ impl<T: 'static + std::fmt::Display> std::fmt::Display for MyWrapper<T> {
 
 pub type MyList = Vec<MyValue>;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 enum Datum {
     Int(i64),
     Flt(f64),
@@ -45,7 +51,7 @@ enum Datum {
     // What I really want here is a MyAny, which happens to be an Rc<T>.
     // Could I use a Box instead?
     Other(Rc<MyAny>),
-    None
+    None,
 }
 
 // TODO: needs to provide standard TCL list output.
@@ -61,7 +67,7 @@ impl Display for Datum {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct MyValue {
     string_rep: RefCell<Option<Rc<String>>>,
     data_rep: RefCell<Datum>,
@@ -84,14 +90,13 @@ impl MyValue {
             return str.clone();
         }
 
-
         // NEXT, if there's no string there must be data.  Convert the data to a string,
         // and save it for next time.
         let data_ref = self.data_rep.borrow();
         let new_string = match *data_ref {
             Datum::Int(int) => Rc::new(int.to_string()),
             Datum::Flt(flt) => Rc::new(flt.to_string()),
-            _ =>  Rc::new("".to_string()),
+            _ => Rc::new("".to_string()),
         };
 
         *string_ref = Some(new_string.clone());
@@ -113,7 +118,7 @@ impl MyValue {
     // * Tries to parse the string_rep as an int.
     // * Saves a new data_rep on success.
     // * Returns an error on failure.
-    pub fn to_int(&self) -> Result<i64,String> {
+    pub fn to_int(&self) -> Result<i64, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -153,7 +158,7 @@ impl MyValue {
     // * Tries to parse the string_rep as a float.
     // * Saves a new data_rep on success.
     // * Returns an error on failure.
-    pub fn to_float(&self) -> Result<f64,String> {
+    pub fn to_float(&self) -> Result<f64, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -189,7 +194,7 @@ impl MyValue {
 
     // Incomplete: should try to parse the string_rep, if any, as a list.  But I don't
     // have a list parser in this project.
-    pub fn to_list(&self) -> Result<Rc<MyList>,String> {
+    pub fn to_list(&self) -> Result<Rc<MyList>, String> {
         let data_ref = self.data_rep.borrow_mut();
 
         if let Datum::List(list) = &*data_ref {
@@ -202,13 +207,14 @@ impl MyValue {
     }
 
     pub fn from_other<T: 'static>(value: T) -> MyValue
-        where T: Display + Debug
+    where
+        T: Display + Debug,
     {
         MyValue {
             string_rep: RefCell::new(None),
             // Use Rc<Rc<T>> === Rc<MyAny>, so that Datum is known to be
             // clonable and the user's data is efficiently clonable and shareable.
-            data_rep: RefCell::new(Datum::Other(Rc::new(Rc::new(value))))
+            data_rep: RefCell::new(Datum::Other(Rc::new(Rc::new(value)))),
         }
     }
 
@@ -217,7 +223,8 @@ impl MyValue {
     // their own appropriate error message.  (This method doesn't know what
     // to call type T in the error message.)
     pub fn to_other<T: 'static>(&self) -> Result<Rc<T>, String>
-        where T: Display + Debug + FromStr
+    where
+        T: Display + Debug + FromStr,
     {
         let mut string_ref = self.string_rep.borrow_mut();
         let mut data_ref = self.data_rep.borrow_mut();
@@ -315,7 +322,7 @@ mod tests {
     fn from_to_list() {
         let a = MyValue::from_string("abc");
         let b = MyValue::from_float(12.5);
-        let listval = MyValue::from_list(vec!(a.clone(), b.clone()));
+        let listval = MyValue::from_list(vec![a.clone(), b.clone()]);
 
         // Get it back as Rc<MyList>
         let result = listval.to_list();
@@ -333,7 +340,7 @@ mod tests {
 
     #[test]
     fn from_to_rgb() {
-        let rgb = RGB::new(1,2,3);
+        let rgb = RGB::new(1, 2, 3);
         let myval = MyValue::from_other(rgb);
 
         // Get it back as Rc<RGB>
@@ -349,20 +356,19 @@ mod tests {
 
         let rgb2 = result.unwrap();
         assert_eq!(rgb, *rgb2);
-
     }
 
-    fn get_rgb(value: & dyn MyAny) -> Option<&RGB> {
+    fn get_rgb(value: &dyn MyAny) -> Option<&RGB> {
         let myval = value.as_any().downcast_ref::<MyWrapper<RGB>>();
         match myval {
             Some(MyWrapper(rgb)) => Some(rgb),
-            _ => None
+            _ => None,
         }
     }
 
     #[test]
     fn using_wrapper() {
-        let x: MyWrapper<RGB> = MyWrapper(RGB::new(1,2,3));
+        let x: MyWrapper<RGB> = MyWrapper(RGB::new(1, 2, 3));
         let a: &dyn MyAny = &x;
         assert_eq!(a.to_string(), "#010203".to_string());
 
@@ -373,7 +379,7 @@ mod tests {
 
         let a: &dyn MyAny = &x;
         let rgb = get_rgb(a).unwrap();
-        assert_eq!(rgb, &RGB::new(1,2,3));
+        assert_eq!(rgb, &RGB::new(1, 2, 3));
     }
 
 }

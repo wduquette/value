@@ -2,13 +2,13 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-type MyHashMap = HashMap<MyValue,MyValue>;
+type MyHashMap = HashMap<MyValue, MyValue>;
 
 type MyList = Vec<MyValue>;
 
 // When I add Other(Rc<Any>) I can no longer derive PartialEq; but that's probably right, as
 // I need to compare for equality using to_string().
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 enum Datum {
     Int(i64),
     Flt(f64),
@@ -16,7 +16,7 @@ enum Datum {
     Other(Rc<Any>),
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 struct MyValue {
     string_rep: Option<Rc<String>>,
     data_rep: Option<Datum>,
@@ -41,7 +41,7 @@ impl MyValue {
         match &self.data_rep {
             Some(Datum::Int(int)) => Rc::new(int.to_string()),
             Some(Datum::Flt(flt)) => Rc::new(flt.to_string()),
-            _ =>  Rc::new("".to_string()),
+            _ => Rc::new("".to_string()),
         }
     }
 
@@ -54,7 +54,7 @@ impl MyValue {
     }
 
     // Tries to return the value as an int
-    pub fn to_int(&self) -> Result<i64,String> {
+    pub fn to_int(&self) -> Result<i64, String> {
         if let Some(Datum::Int(int)) = self.data_rep {
             Ok(int)
         } else if let Some(str) = &self.string_rep {
@@ -76,7 +76,7 @@ impl MyValue {
     }
 
     // Tries to return the value as a float
-    pub fn to_flt(&self) -> Result<f64,String> {
+    pub fn to_flt(&self) -> Result<f64, String> {
         if let Some(Datum::Flt(flt)) = self.data_rep {
             Ok(flt)
         } else if let Some(str) = &self.string_rep {
@@ -99,7 +99,7 @@ impl MyValue {
 
     // Incomplete: should try to parse the string_rep, if any, as a list.  But I don't
     // have a list parser in this project.
-    pub fn to_list(&self) -> Result<Rc<MyList>,String> {
+    pub fn to_list(&self) -> Result<Rc<MyList>, String> {
         if let Some(Datum::List(list)) = &self.data_rep {
             Ok(list.clone())
         } else if let Some(_str) = &self.string_rep {
@@ -121,7 +121,7 @@ impl MyValue {
 
     // Incomplete: should try to parse the string_rep, if any, as a list.  But I don't
     // have a list parser in this project.
-    pub fn to_any(&self) -> Result<Rc<Any>,String> {
+    pub fn to_any(&self) -> Result<Rc<Any>, String> {
         if let Some(Datum::Other(value)) = &self.data_rep {
             Ok(value.clone())
         } else if let Some(_str) = &self.string_rep {
@@ -182,7 +182,7 @@ mod tests {
     fn from_to_list() {
         let a = MyValue::from_string("abc");
         let b = MyValue::from_float(12.5);
-        let listval = MyValue::from_list(vec!(a.clone(), b.clone()));
+        let listval = MyValue::from_list(vec![a.clone(), b.clone()]);
 
         // Get it back as Rc<MyList>
         let result = listval.to_list();

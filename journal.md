@@ -2,6 +2,10 @@
 
 ## Things to remember to do
 
+*   Determine: is it possible for the "to_{cloneable}" methods to return a borrow
+    with a lifetime the same as the MoltValue?
+    *   For the string_rep, that would work, if I can figure out how to do it.
+    *   For the data_rep it won't, because the data_rep could change.
 *   Implement Eq or PartialEq (whatever's needed) so that you can compare two
     MoltValues.  (Based on string_rep).
 *   Figure out what the API for defining/using a user type should look like.
@@ -12,7 +16,13 @@
             bad practice.
 *   The MoltValue functions return errors as Result<_,String>; they should be
     Result<_,ResultCode>.
-
+    *   And ResultCode should probably include `Error(MoltValue)` and
+        `Return(MoltValue)` instead of String.
+*   Figure out how best to define MoltFloat and MoltInt for formatting and parsing.
+    *   Standard formatting is fine for MoltInt, but parsing needs to take the
+        different integer formats into account.
+    *   Standard parsing may be fine for MoltFloat, but formatting needs to be done
+        to ensure that we can get the same MoltFloat back.
 
 ## 2019-06-07
 *   Continue working with Datum to handle Datum::Other properly.

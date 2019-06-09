@@ -1,6 +1,6 @@
+use std::any::Any;
 use std::fmt::Debug;
 use std::fmt::Display;
-use std::any::Any;
 use std::rc::Rc;
 
 pub trait MyAny: Any + Display + Debug {
@@ -10,19 +10,26 @@ pub trait MyAny: Any + Display + Debug {
 }
 
 impl<T: Any + Display + Debug> MyAny for T {
-    fn as_any(&self) -> &dyn Any { self }
-    fn as_any_mut(&mut self) -> &mut dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 enum Datum {
     Other(Rc<MyAny>),
-    None
+    None,
 }
 
 fn to_other<T: 'static>(datum: &Datum) -> Rc<T>
-    where T: Display + Debug
+where
+    T: Display + Debug,
 {
     if let Datum::Other(other) = datum {
         // other is an &Rc<MyAny>
@@ -37,8 +44,9 @@ fn to_other<T: 'static>(datum: &Datum) -> Rc<T>
     }
 }
 
-fn to_other2<T: 'static>(datum: &Datum) -> Result<Rc<T>,String>
-    where T: Display + Debug
+fn to_other2<T: 'static>(datum: &Datum) -> Result<Rc<T>, String>
+where
+    T: Display + Debug,
 {
     if let Datum::Other(other) = datum {
         // other is an &Rc<MyAny>

@@ -1,9 +1,9 @@
-use std::str::FromStr;
-use std::fmt::Debug;
-use std::fmt::Display;
 use std::any::Any;
 use std::cell::RefCell;
+use std::fmt::Debug;
+use std::fmt::Display;
 use std::rc::Rc;
+use std::str::FromStr;
 
 //-----------------------------------------------------------------------------
 // Public Data Types
@@ -16,26 +16,25 @@ pub type MoltList = Vec<MoltValue>;
 pub type MoltInt = i64;
 pub type MoltFloat = f64;
 
-
 /// The standard Molt value representation.  Variable values and list elements
 /// are MoltValues.
 ///
 /// TODO: Define other needed traits.
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct MoltValue {
     string_rep: RefCell<Option<Rc<String>>>,
     data_rep: RefCell<Datum>,
 }
 
 // The data representation for MoltValues that define data
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 enum Datum {
     Int(MoltInt),
     Flt(MoltFloat),
     List(Rc<MoltList>),
     Other(Rc<MoltAny>),
-    None
+    None,
 }
 
 impl Display for MoltValue {
@@ -53,12 +52,12 @@ impl Display for MoltValue {
         let new_string = match *data_ref {
             Datum::Int(int) => Rc::new(int.to_string()),
             Datum::Flt(flt) => Rc::new(flt.to_string()),
-            _ =>  Rc::new("".to_string()),
+            _ => Rc::new("".to_string()),
         };
 
         *string_ref = Some(new_string.clone());
 
-        return write!(f, "{}", new_string)
+        return write!(f, "{}", new_string);
     }
 }
 
@@ -93,7 +92,7 @@ impl MoltValue {
     /// * On failure, return an error.
     ///
     /// TODO: Need to return Molt-compatible Err's.
-    pub fn to_int(&self) -> Result<MoltInt,String> {
+    pub fn to_int(&self) -> Result<MoltInt, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -140,7 +139,7 @@ impl MoltValue {
     /// * On failure, return an error.
     ///
     /// TODO: Need to return Molt-compatible Err's.
-    pub fn to_float(&self) -> Result<MoltFloat,String> {
+    pub fn to_float(&self) -> Result<MoltFloat, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -179,7 +178,7 @@ impl MoltValue {
 
     // Incomplete: should try to parse the string_rep, if any, as a list.  But I don't
     // have a list parser in this project.
-    pub fn to_list(&self) -> Result<Rc<MoltList>,String> {
+    pub fn to_list(&self) -> Result<Rc<MoltList>, String> {
         let data_ref = self.data_rep.borrow_mut();
 
         if let Datum::List(list) = &*data_ref {
@@ -197,22 +196,32 @@ impl MoltValue {
     /// i.e., if there's whitespace the value must be interpretable as a
     /// a TCL list.
     pub fn from_other<T: 'static>(value: T) -> MoltValue
-        where T: Display + Debug
+    where
+        T: Display + Debug,
     {
         MoltValue {
             string_rep: RefCell::new(None),
             // Use Rc<Rc<T>> === Rc<MoltAny>, so that Datum is known to be
             // clonable and the user's data is efficiently clonable and shareable.
-            data_rep: RefCell::new(Datum::Other(Rc::new(Rc::new(value))))
+            data_rep: RefCell::new(Datum::Other(Rc::new(Rc::new(value)))),
         }
     }
 
-    // NOTE: This should possibly return Option<Rc<T>> rather than Result:
-    // External types should usually wrap this call, and will want to provide
-    // their own appropriate error message.  (This method doesn't know what
-    // to call type T in the error message.)
-    pub fn to_other<T: 'static>(&self) -> Result<Rc<T>, String>
-        where T: Display + Debug + FromStr
+    /// Tries to interpret the MoltValue as a value of type `Rc<T>`.
+    ///
+    /// The value is returned as an `Rc<T>`, as this allows the client to
+    /// use the value freely.
+    ///
+    /// This method returns `Option` rather than `Result` because it is up
+    /// to the caller to provide a meaningful error message: the method
+    /// doesn't know what to call the type.
+    ///
+    /// When adding an external type `MyType` to Molt, it is usual to define
+    /// functions `from_my_type` and `to_my_type` that make use of `from_other`
+    /// and `to_other`.
+    pub fn to_other<T: 'static>(&self) -> Option<Rc<T>>
+    where
+        T: Display + Debug + FromStr,
     {
         let mut string_ref = self.string_rep.borrow_mut();
         let mut data_ref = self.data_rep.borrow_mut();
@@ -225,7 +234,7 @@ impl MoltValue {
             if result.is_some() {
                 // Let's be sure we're really getting what we wanted.
                 let out: Rc<T> = result.unwrap().clone();
-                return Ok(out);
+                return Some(out);
             }
         }
 
@@ -241,12 +250,12 @@ impl MoltValue {
                 let tval = Rc::new(tval);
                 let out = tval.clone();
                 *data_ref = Datum::Other(Rc::new(tval));
-                return Ok(out);
+                return Some(out);
             }
         }
 
-        // NEXT, we couldn't do it; return an error.
-        Err("TODO, not a T".to_string())
+        // NEXT, we couldn't do it.
+        None
     }
 }
 
@@ -260,15 +269,21 @@ trait MoltAny: Any + Display + Debug {
 }
 
 impl<T: Any + Display + Debug> MoltAny for T {
-    fn as_any(&self) -> &dyn Any { self }
-    fn as_any_mut(&mut self) -> &mut dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
 }
 
 //-----------------------------------------------------------------------------
 // Datum enum: a sum type for the different kinds of data_reps.
 
-// TODO: needs to provide standard TCL list output.
+// TODO: needs to provide standard TCL list and float output.
 impl Display for Datum {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -280,7 +295,6 @@ impl Display for Datum {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -342,7 +356,7 @@ mod tests {
     fn from_to_list() {
         let a = MoltValue::from_string("abc".to_string());
         let b = MoltValue::from_float(12.5);
-        let listval = MoltValue::from_list(vec!(a.clone(), b.clone()));
+        let listval = MoltValue::from_list(vec![a.clone(), b.clone()]);
 
         // Get it back as Rc<MoltList>
         let result = listval.to_list();
@@ -361,19 +375,19 @@ mod tests {
 
     #[test]
     fn from_to_rgb() {
-        let rgb = RGB::new(1,2,3);
+        let rgb = RGB::new(1, 2, 3);
         let myval = MoltValue::from_other(rgb);
 
         // Get it back as Rc<RGB>
         let result = myval.to_other::<RGB>();
-        assert!(result.is_ok());
+        assert!(result.is_some());
 
         let rgb2 = result.unwrap();
         assert_eq!(rgb, *rgb2);
 
         let myval = MoltValue::from_string("#010203".to_string());
         let result = myval.to_other::<RGB>();
-        assert!(result.is_ok());
+        assert!(result.is_some());
 
         let rgb2 = result.unwrap();
         assert_eq!(rgb, *rgb2);
