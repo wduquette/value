@@ -10,8 +10,11 @@ use std::rc::Rc;
 
 /// The standard Molt list representation, a vector of MoltValues.
 ///
-/// TODO: Consider making this a newtype.
+/// TODO: Consider making these newtypes, so that we can implement Display
+/// and FromStr for them.
 pub type MoltList = Vec<MoltValue>;
+pub type MoltInt = i64;
+pub type MoltFloat = f64;
 
 
 /// The standard Molt value representation.  Variable values and list elements
@@ -25,6 +28,15 @@ pub struct MoltValue {
     data_rep: RefCell<Datum>,
 }
 
+// The data representation for MoltValues that define data
+#[derive(Clone,Debug)]
+enum Datum {
+    Int(MoltInt),
+    Flt(MoltFloat),
+    List(Rc<MoltList>),
+    Other(Rc<MoltAny>),
+    None
+}
 
 impl Display for MoltValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -51,29 +63,37 @@ impl Display for MoltValue {
 }
 
 impl MoltValue {
-    // A new value (string,none)
-    pub fn from_string(str: &str) -> MoltValue {
+    /// Creates a new MoltValue from the given string.
+    ///
+    /// Note: takes a String rather than a &str because the whole point is to
+    /// take ownership and create a reference-counted immutable string.  If
+    /// the method took &str, then a newly created String might get cloned.
+    pub fn from_string(str: String) -> MoltValue {
         MoltValue {
-            string_rep: RefCell::new(Some(Rc::new(str.to_string()))),
+            string_rep: RefCell::new(Some(Rc::new(str))),
             data_rep: RefCell::new(Datum::None),
         }
     }
 
-    // A new value, (none,int)
-    pub fn from_int(int: i64) -> MoltValue {
+    /// Creates a new MoltValue whose data representation is a MoltInt.
+    pub fn from_int(int: MoltInt) -> MoltValue {
         MoltValue {
             string_rep: RefCell::new(None),
             data_rep: RefCell::new(Datum::Int(int)),
         }
     }
 
-    // Tries to return the value as an int.
-    // * Returns the data_rep if it can.
-    // * Otherwise, produces a string_rep if there isn't one.
-    // * Tries to parse the string_rep as an int.
-    // * Saves a new data_rep on success.
-    // * Returns an error on failure.
-    pub fn to_int(&self) -> Result<i64,String> {
+    /// Tries to return the MoltValue as an int.  This method will:
+    ///
+    /// * Return the data representation if it is already a MoltInt.
+    /// * If there is no current string representation, produce one from the
+    ///   current data representation.
+    /// * Try to parse the string representation as an int.
+    /// * On success, save the int as the new data representation
+    /// * On failure, return an error.
+    ///
+    /// TODO: Need to return Molt-compatible Err's.
+    pub fn to_int(&self) -> Result<MoltInt,String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -89,31 +109,38 @@ impl MoltValue {
 
         // NEXT, if we have a string_rep, try to parse it as an integer
         if let Some(str) = &*string_ref {
-            if let Ok(int) = str.parse::<i64>() {
+            // TODO: Uses standard Rust integer parsing.  Need to use the
+            // TCL algorithm; see Interp::get_int.
+            if let Ok(int) = str.parse::<MoltInt>() {
                 *data_ref = Datum::Int(int);
                 return Ok(int);
             }
         }
 
         // NEXT, nothing worked.
+        // TODO: Use the correct error message.
         Err("Not an integer".to_string())
     }
 
-    // A new value, (none,float)
-    pub fn from_float(flt: f64) -> MoltValue {
+    /// Creates a new MoltValue whose data representation is a MoltFloat.
+    pub fn from_float(flt: MoltFloat) -> MoltValue {
         MoltValue {
             string_rep: RefCell::new(None),
             data_rep: RefCell::new(Datum::Flt(flt)),
         }
     }
 
-    // Tries to return the value as a float.
-    // * Returns the data_rep if it can.
-    // * Otherwise, produces a string_rep if there isn't one.
-    // * Tries to parse the string_rep as a float.
-    // * Saves a new data_rep on success.
-    // * Returns an error on failure.
-    pub fn to_float(&self) -> Result<f64,String> {
+    /// Tries to return the MoltValue as an float.  This method will:
+    ///
+    /// * Return the data representation if it is already a MoltFloat.
+    /// * If there is no current string representation, produce one from the
+    ///   current data representation.
+    /// * Try to parse the string representation as a float.
+    /// * On success, save the float as the new data representation
+    /// * On failure, return an error.
+    ///
+    /// TODO: Need to return Molt-compatible Err's.
+    pub fn to_float(&self) -> Result<MoltFloat,String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -129,17 +156,20 @@ impl MoltValue {
 
         // NEXT, if we have a string rep, try to parse it as a float
         if let Some(str) = &*string_ref {
-            if let Ok(flt) = str.parse::<f64>() {
+            // TODO: Currently uses the standard Rust parser.  That may
+            // be OK, but I need to check.
+            if let Ok(flt) = str.parse::<MoltFloat>() {
                 *data_ref = Datum::Flt(flt);
                 return Ok(flt);
             }
         }
 
         // NEXT, nothing worked.
+        // TODO: need to use the right error message.
         Err("Not a float".to_string())
     }
 
-    // A new value, (none,list)
+    /// Creates a new MoltValue whose data representation is a MoltList.
     pub fn from_list(list: MoltList) -> MoltValue {
         MoltValue {
             string_rep: RefCell::new(None),
@@ -161,6 +191,11 @@ impl MoltValue {
         }
     }
 
+    /// Creates a new MoltValue containing the given value of a user type.
+    /// The type must implement Display and FromStr, and the Display result
+    /// must be compatible with the FromStr parsing (and with TCL syntax),
+    /// i.e., if there's whitespace the value must be interpretable as a
+    /// a TCL list.
     pub fn from_other<T: 'static>(value: T) -> MoltValue
         where T: Display + Debug
     {
@@ -218,8 +253,7 @@ impl MoltValue {
 //-----------------------------------------------------------------------------
 // The MoltAny Trait: a tool for handling external types.
 
-// TODO: Does this need to be pub?
-pub trait MoltAny: Any + Display + Debug {
+trait MoltAny: Any + Display + Debug {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn into_any(self: Box<Self>) -> Box<dyn Any>;
@@ -233,19 +267,6 @@ impl<T: Any + Display + Debug> MoltAny for T {
 
 //-----------------------------------------------------------------------------
 // Datum enum: a sum type for the different kinds of data_reps.
-
-// The data representation for MoltValues that define data
-#[derive(Clone,Debug)]
-enum Datum {
-    Int(i64),
-    Flt(f64),
-    List(Rc<MoltList>),
-
-    // What I really want here is a MoltAny, which happens to be an Rc<T>.
-    // Could I use a Box instead?
-    Other(Rc<MoltAny>),
-    None
-}
 
 // TODO: needs to provide standard TCL list output.
 impl Display for Datum {
@@ -267,7 +288,7 @@ mod tests {
 
     #[test]
     fn from_to() {
-        let val = MoltValue::from_string("abc");
+        let val = MoltValue::from_string("abc".to_string());
         assert_eq!(*val.to_string(), "abc".to_string());
 
         let val2 = val.clone();
@@ -281,7 +302,7 @@ mod tests {
         assert_eq!(val.to_int(), Ok(5));
         assert_eq!(val.to_float(), Ok(5.0));
 
-        let val = MoltValue::from_string("7");
+        let val = MoltValue::from_string("7".to_string());
         assert_eq!(*val.to_string(), "7".to_string());
         assert_eq!(val.to_int(), Ok(7));
         assert_eq!(val.to_float(), Ok(7.0));
@@ -294,7 +315,7 @@ mod tests {
         assert_eq!(val.to_int(), Ok(7));
         assert_eq!(val.to_float(), Ok(7.0));
 
-        let val = MoltValue::from_string("abc");
+        let val = MoltValue::from_string("abc".to_string());
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
     }
 
@@ -305,7 +326,7 @@ mod tests {
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
         assert_eq!(val.to_float(), Ok(12.5));
 
-        let val = MoltValue::from_string("7.8");
+        let val = MoltValue::from_string("7.8".to_string());
         assert_eq!(*val.to_string(), "7.8".to_string());
         assert_eq!(val.to_int(), Err("Not an integer".to_string()));
         assert_eq!(val.to_float(), Ok(7.8));
@@ -313,13 +334,13 @@ mod tests {
         let val = MoltValue::from_int(5);
         assert_eq!(val.to_float(), Ok(5.0));
 
-        let val = MoltValue::from_string("abc");
+        let val = MoltValue::from_string("abc".to_string());
         assert_eq!(val.to_float(), Err("Not a float".to_string()));
     }
 
     #[test]
     fn from_to_list() {
-        let a = MoltValue::from_string("abc");
+        let a = MoltValue::from_string("abc".to_string());
         let b = MoltValue::from_float(12.5);
         let listval = MoltValue::from_list(vec!(a.clone(), b.clone()));
 
@@ -335,6 +356,7 @@ mod tests {
         }
     }
 
+    // TODO: Replace RGB with a simpler type defined here in the test module.
     use crate::rgb::RGB;
 
     #[test]
@@ -349,12 +371,11 @@ mod tests {
         let rgb2 = result.unwrap();
         assert_eq!(rgb, *rgb2);
 
-        let myval = MoltValue::from_string("#010203");
+        let myval = MoltValue::from_string("#010203".to_string());
         let result = myval.to_other::<RGB>();
         assert!(result.is_ok());
 
         let rgb2 = result.unwrap();
         assert_eq!(rgb, *rgb2);
-
     }
 }

@@ -2,12 +2,17 @@
 
 ## Things to remember to do
 
+*   Implement Eq or PartialEq (whatever's needed) so that you can compare two
+    MoltValues.  (Based on string_rep).
 *   Figure out what the API for defining/using a user type should look like.
     *   You'd want to wrap from_other and to_other.
     *   Probably individual functions, but could be defined on the user_type struct.
     *   Probably want to handle ints/floats/lists equivalently.
         *   However, implementing Deref on non-smart-pointers is considered
             bad practice.
+*   The MoltValue functions return errors as Result<_,String>; they should be
+    Result<_,ResultCode>.
+
 
 ## 2019-06-07
 *   Continue working with Datum to handle Datum::Other properly.
