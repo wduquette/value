@@ -1,3 +1,5 @@
+use std::ops::Deref;
+use std::cell::Ref;
 use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::Debug;
@@ -39,6 +41,7 @@ enum Datum {
 
 impl Display for MoltValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        // TODO: This should call as_str_ref; but it will end up returning a clone.
         // FIRST, if there's already a string, return it.
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -49,11 +52,7 @@ impl Display for MoltValue {
         // NEXT, if there's no string there must be data.  Convert the data to a string,
         // and save it for next time.
         let data_ref = self.data_rep.borrow();
-        let new_string = match *data_ref {
-            Datum::Int(int) => Rc::new(int.to_string()),
-            Datum::Flt(flt) => Rc::new(flt.to_string()),
-            _ => Rc::new("".to_string()),
-        };
+        let new_string = Rc::new((*data_ref).to_string());
 
         *string_ref = Some(new_string.clone());
 
@@ -62,27 +61,29 @@ impl Display for MoltValue {
 }
 
 impl MoltValue {
-    // pub fn as_string(&self) -> &str {
-    //     // FIRST, if there's already a string, return it.
-    //     let mut string_ref = self.string_rep.borrow_mut();
-    //
-    //     if let Some(str) = &*string_ref {
-    //         return str;
-    //     }
-    //
-    //     // NEXT, if there's no string there must be data.  Convert the data to a string,
-    //     // and save it for next time.
-    //     let data_ref = self.data_rep.borrow();
-    //     let new_string = match *data_ref {
-    //         Datum::Int(int) => Rc::new(int.to_string()),
-    //         Datum::Flt(flt) => Rc::new(flt.to_string()),
-    //         _ => Rc::new("".to_string()),
-    //     };
-    //
-    //     *string_ref = Some(new_string.clone());
-    //
-    //     &*string_ref.unwrap()
-    // }
+    // TODO: see the test function as_str_ref(): it isn't quite what we want yet.
+    pub fn as_str_ref(&self) -> Ref<str> {
+        // FIRST, if there's already a string, return it.
+        let string_ref = self.string_rep.borrow();
+
+        if string_ref.is_some() {
+            // Return a Ref<str>, roughly equivalent to an &str.
+            return Ref::map(self.string_rep.borrow(), |borrow| {
+                borrow.as_ref().unwrap().as_str()
+            });
+        }
+
+        // NEXT, if there's no string there must be data.  Convert the data to a string,
+        // and save it for next time.
+        let data_ref = self.data_rep.borrow();
+        let mut string_ref = self.string_rep.borrow_mut();
+        let new_string = Rc::new((*data_ref).to_string());
+        *string_ref = Some(new_string.clone());
+
+        Ref::map(self.string_rep.borrow(), |borrow| {
+            borrow.as_ref().unwrap().as_str()
+        })
+    }
 
     /// Creates a new MoltValue from the given string.
     ///
@@ -329,6 +330,13 @@ mod tests {
 
         let val2 = val.clone();
         assert_eq!(*val.to_string(), *val2.to_string());
+    }
+
+    #[test]
+    fn as_str_ref() {
+        let val = MoltValue::from_string("abc".to_string());
+        assert_eq!(&*val.as_str_ref(), "abc");
+        // Want: assert_eq!(val.as_str_ref(), "abc");
     }
 
     #[test]
