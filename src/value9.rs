@@ -95,7 +95,7 @@ impl MoltValue {
     /// * On failure, return an error.
     ///
     /// TODO: Need to return Molt-compatible Err's.
-    pub fn to_int(&self) -> Result<MoltInt, String> {
+    pub fn as_int(&self) -> Result<MoltInt, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -142,7 +142,7 @@ impl MoltValue {
     /// * On failure, return an error.
     ///
     /// TODO: Need to return Molt-compatible Err's.
-    pub fn to_float(&self) -> Result<MoltFloat, String> {
+    pub fn as_float(&self) -> Result<MoltFloat, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
@@ -181,7 +181,7 @@ impl MoltValue {
 
     // Incomplete: should try to parse the string_rep, if any, as a list.  But I don't
     // have a list parser in this project.
-    pub fn to_list(&self) -> Result<Rc<MoltList>, String> {
+    pub fn as_list(&self) -> Result<Rc<MoltList>, String> {
         let data_ref = self.data_rep.borrow_mut();
 
         if let Datum::List(list) = &*data_ref {
@@ -221,8 +221,8 @@ impl MoltValue {
     ///
     /// When adding an external type `MyType` to Molt, it is usual to define
     /// functions `from_my_type` and `to_my_type` that make use of `from_other`
-    /// and `to_other`.
-    pub fn to_other<T: 'static>(&self) -> Option<Rc<T>>
+    /// and `as_other`.
+    pub fn as_other<T: 'static>(&self) -> Option<Rc<T>>
     where
         T: Display + Debug + FromStr,
     {
@@ -321,56 +321,56 @@ mod tests {
     }
 
     #[test]
-    fn from_to_int() {
+    fn from_as_int() {
         let val = MoltValue::from_int(5);
         assert_eq!(*val.to_string(), "5".to_string());
-        assert_eq!(val.to_int(), Ok(5));
-        assert_eq!(val.to_float(), Ok(5.0));
+        assert_eq!(val.as_int(), Ok(5));
+        assert_eq!(val.as_float(), Ok(5.0));
 
         let val = MoltValue::from_string("7".to_string());
         assert_eq!(*val.to_string(), "7".to_string());
-        assert_eq!(val.to_int(), Ok(7));
-        assert_eq!(val.to_float(), Ok(7.0));
+        assert_eq!(val.as_int(), Ok(7));
+        assert_eq!(val.as_float(), Ok(7.0));
 
         // TODO: Note, 7.0 might not get converted to "7" long term.
         // In Standard TCL, its string_rep would be "7.0".  Need to address
         // MoltFloat formatting/parsing.
         let val = MoltValue::from_float(7.0);
         assert_eq!(*val.to_string(), "7".to_string());
-        assert_eq!(val.to_int(), Ok(7));
-        assert_eq!(val.to_float(), Ok(7.0));
+        assert_eq!(val.as_int(), Ok(7));
+        assert_eq!(val.as_float(), Ok(7.0));
 
         let val = MoltValue::from_string("abc".to_string());
-        assert_eq!(val.to_int(), Err("Not an integer".to_string()));
+        assert_eq!(val.as_int(), Err("Not an integer".to_string()));
     }
 
     #[test]
-    fn from_to_float() {
+    fn from_as_float() {
         let val = MoltValue::from_float(12.5);
         assert_eq!(*val.to_string(), "12.5".to_string());
-        assert_eq!(val.to_int(), Err("Not an integer".to_string()));
-        assert_eq!(val.to_float(), Ok(12.5));
+        assert_eq!(val.as_int(), Err("Not an integer".to_string()));
+        assert_eq!(val.as_float(), Ok(12.5));
 
         let val = MoltValue::from_string("7.8".to_string());
         assert_eq!(*val.to_string(), "7.8".to_string());
-        assert_eq!(val.to_int(), Err("Not an integer".to_string()));
-        assert_eq!(val.to_float(), Ok(7.8));
+        assert_eq!(val.as_int(), Err("Not an integer".to_string()));
+        assert_eq!(val.as_float(), Ok(7.8));
 
         let val = MoltValue::from_int(5);
-        assert_eq!(val.to_float(), Ok(5.0));
+        assert_eq!(val.as_float(), Ok(5.0));
 
         let val = MoltValue::from_string("abc".to_string());
-        assert_eq!(val.to_float(), Err("Not a float".to_string()));
+        assert_eq!(val.as_float(), Err("Not a float".to_string()));
     }
 
     #[test]
-    fn from_to_list() {
+    fn from_as_list() {
         let a = MoltValue::from_string("abc".to_string());
         let b = MoltValue::from_float(12.5);
         let listval = MoltValue::from_list(vec![a.clone(), b.clone()]);
 
         // Get it back as Rc<MoltList>
-        let result = listval.to_list();
+        let result = listval.as_list();
 
         assert!(result.is_ok());
 
@@ -390,14 +390,14 @@ mod tests {
         let myval = MoltValue::from_other(rgb);
 
         // Get it back as Rc<RGB>
-        let result = myval.to_other::<RGB>();
+        let result = myval.as_other::<RGB>();
         assert!(result.is_some());
 
         let rgb2 = result.unwrap();
         assert_eq!(rgb, *rgb2);
 
         let myval = MoltValue::from_string("#010203".to_string());
-        let result = myval.to_other::<RGB>();
+        let result = myval.as_other::<RGB>();
         assert!(result.is_some());
 
         let rgb2 = result.unwrap();
