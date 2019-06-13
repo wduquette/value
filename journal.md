@@ -28,6 +28,15 @@
         clearly different.
     *   And Rc<String> is not obviously worse than Ref<String>; and it doesn't
         involve a runtime borrow.
+*   Added MoltValue::as_string, which returns an Rc<String>; it's more efficient
+    (or should be) than the std::fmt::Display to_string(), since it doesn't
+    involve creating a new string most of the time.
+*   Chose to use "as_" syntax, e.g., `as_string`, `as_int`, `as_list` instead of
+    "to_" syntax.  It really is returning the value as that given type; but the
+    type is a reference counted copy of what's in the MoltValue.  "as_" is only
+    supposed to be used when the conversion is basically free; but it *is*
+    basically free after the first time.  And it keeps `as_string` distinct
+    from `to_string`.
 
 ## 2019-06-08
 *   Looked into defining MoltInt and MoltFloat as newtypes.
