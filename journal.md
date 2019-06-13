@@ -2,13 +2,6 @@
 
 ## Things to remember to do
 
-*   Determine: is it possible for the "to_*" methods to return an immutable borrow
-    with a lifetime the same as the MoltValue?
-    *   For the string_rep, that would work, if I can figure out how to do it.
-    *   For the data_rep it might not, because the data_rep could change.
-        Or maybe it would....
-    *   Looks like it might work.  See answer to question:
-        https://users.rust-lang.org/t/returning-immutable-references-with-option-refcell/29130
 *   Determine: is it possible to convert an Rc<Any> to an Rc<T>?
 *   Figure out what the API for defining/using a user type should look like.
     *   You'd want to wrap from_other and to_other.
@@ -26,6 +19,15 @@
     *   The MoltValue functions return errors as Result<_,String>; they should be
         Result<_,ResultCode>.
     *   And ResultCode should use `Error(MoltValue)` and `Return(MoltValue)` instead of String.
+
+## 2019-06-12
+*   Tried returning Ref<String> instead of Rc<String>, and immediately ran into
+    runtime errors.  Better leave the Ref's purely inside.
+    *   Per https://users.rust-lang.org/t/returning-immutable-references-with-option-refcell/29130
+    *   If it could safely look like &str, that would be one thing; but it's
+        clearly different.
+    *   And Rc<String> is not obviously worse than Ref<String>; and it doesn't
+        involve a runtime borrow.
 
 ## 2019-06-08
 *   Looked into defining MoltInt and MoltFloat as newtypes.

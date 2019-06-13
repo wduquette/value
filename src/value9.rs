@@ -1,5 +1,3 @@
-use std::ops::Deref;
-use std::cell::Ref;
 use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::Debug;
@@ -41,48 +39,30 @@ enum Datum {
 
 impl Display for MoltValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // TODO: This should call as_str_ref; but it will end up returning a clone.
-        // FIRST, if there's already a string, return it.
-        let mut string_ref = self.string_rep.borrow_mut();
-
-        if let Some(str) = &*string_ref {
-            return write!(f, "{}", str);
-        }
-
-        // NEXT, if there's no string there must be data.  Convert the data to a string,
-        // and save it for next time.
-        let data_ref = self.data_rep.borrow();
-        let new_string = Rc::new((*data_ref).to_string());
-
-        *string_ref = Some(new_string.clone());
-
-        return write!(f, "{}", new_string);
+        write!(f, "{}", self.as_string())
     }
 }
 
 impl MoltValue {
-    // TODO: see the test function as_str_ref(): it isn't quite what we want yet.
-    pub fn as_str_ref(&self) -> Ref<str> {
+    /// Returns the string representation of the value as a reference-counted
+    /// string, computing it if necessary.  This method is preferred to
+    /// `to_string` as it doesn't clone the entire string.
+    fn as_string(&self) -> Rc<String> {
         // FIRST, if there's already a string, return it.
-        let string_ref = self.string_rep.borrow();
+        let mut string_ref = self.string_rep.borrow_mut();
 
-        if string_ref.is_some() {
-            // Return a Ref<str>, roughly equivalent to an &str.
-            return Ref::map(self.string_rep.borrow(), |borrow| {
-                borrow.as_ref().unwrap().as_str()
-            });
+        if let Some(str) = &*string_ref {
+            return Rc::clone(str);
         }
 
         // NEXT, if there's no string there must be data.  Convert the data to a string,
         // and save it for next time.
         let data_ref = self.data_rep.borrow();
-        let mut string_ref = self.string_rep.borrow_mut();
         let new_string = Rc::new((*data_ref).to_string());
+
         *string_ref = Some(new_string.clone());
 
-        Ref::map(self.string_rep.borrow(), |borrow| {
-            borrow.as_ref().unwrap().as_str()
-        })
+        new_string
     }
 
     /// Creates a new MoltValue from the given string.
@@ -324,7 +304,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn from_to() {
+    fn to_string() {
         let val = MoltValue::from_string("abc".to_string());
         assert_eq!(*val.to_string(), "abc".to_string());
 
@@ -332,11 +312,12 @@ mod tests {
         assert_eq!(*val.to_string(), *val2.to_string());
     }
 
-    #[test]
-    fn as_str_ref() {
+    fn as_string() {
         let val = MoltValue::from_string("abc".to_string());
-        assert_eq!(&*val.as_str_ref(), "abc");
-        // Want: assert_eq!(val.as_str_ref(), "abc");
+        assert_eq!(*val.as_string(), "abc".to_string());
+
+        let val2 = val.clone();
+        assert_eq!(*val.as_string(), *val2.to_string());
     }
 
     #[test]
