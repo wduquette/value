@@ -3,8 +3,7 @@
 ## Things to remember to do
 
 *   Determine: is it possible to convert an Rc<Any> to an Rc<T>?
-    *   Could we store Datum::Other(MyAny), requiring that MyAny implements
-        Clone?  Then we drop in an Rc<T>, which we can get out again.
+    *   Or, can we make Datum::Other(_) contain something else that will work?
 *   Figure out what the API for defining/using a user type should look like.
     *   You'd want to wrap from_other and to_other.
     *   Probably individual functions, but could be defined on the user_type struct.
@@ -39,6 +38,8 @@
     supposed to be used when the conversion is basically free; but it *is*
     basically free after the first time.  And it keeps `as_string` distinct
     from `to_string`.
+*   Tried to make MyAny require Clone, and use just Datum::Other(MyAny).  Not going
+    to fly, at least not obviously.
 
 ## 2019-06-08
 *   Looked into defining MoltInt and MoltFloat as newtypes.
