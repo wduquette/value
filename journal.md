@@ -3,6 +3,8 @@
 ## Things to remember to do
 
 *   Determine: is it possible to convert an Rc<Any> to an Rc<T>?
+    *   Could we store Datum::Other(MyAny), requiring that MyAny implements
+        Clone?  Then we drop in an Rc<T>, which we can get out again.
 *   Figure out what the API for defining/using a user type should look like.
     *   You'd want to wrap from_other and to_other.
     *   Probably individual functions, but could be defined on the user_type struct.
