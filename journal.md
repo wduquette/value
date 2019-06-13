@@ -5,6 +5,7 @@
 *   Determine: is it possible to convert an Rc<Any> to an Rc<T>?
     *   Or, can we make Datum::Other(_) contain something else that will work?
     *   Or, do we need the "Wrapper" newtype?
+    *   https://users.rust-lang.org/t/downcast-rc-any-to-rc-t/29230
 *   Figure out what the API for defining/using a user type should look like.
     *   You'd want to wrap from_other and to_other.
     *   Probably individual functions, but could be defined on the user_type struct.
