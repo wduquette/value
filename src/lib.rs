@@ -66,3 +66,6 @@ mod datum3;
 
 // Trying to return immutable borrows rather than Rc's.
 mod value9;
+
+// Trying to simplify the double Rc<T> for MoltAny
+mod value10;
