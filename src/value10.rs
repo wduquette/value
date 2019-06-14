@@ -236,7 +236,7 @@ impl MoltValue {
             // let result = (**other).as_any().downcast_ref::<Rc<T>>();
             let result = (*other).downcast::<T>();
 
-            if result.is_some() {
+            if result.is_ok() {
                 // Let's be sure we're really getting what we wanted.
                 let out: Rc<T> = result.unwrap().clone();
                 return Some(out);
