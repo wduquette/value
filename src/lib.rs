@@ -69,3 +69,6 @@ mod value9;
 
 // Trying to simplify the double Rc<T> for MoltAny
 mod value10;
+
+// Preparing for integration
+pub mod value;
