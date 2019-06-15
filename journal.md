@@ -2,15 +2,8 @@
 
 ## Things to remember to do
 
-*   Determine: is it possible to convert an Rc<Any> to an Rc<T>?
-    *   Or, can we make Datum::Other(_) contain something else that will work?
-    *   Or, do we need the "Wrapper" newtype?
-    *   https://users.rust-lang.org/t/downcast-rc-any-to-rc-t/29230
-*   Figure out what the API for defining/using a user type should look like.
-    *   You'd want to wrap from_other and to_other.
-    *   Probably individual functions, but could be defined on the user_type struct.
 *   Integration
-    *   See the "TODO's" in value8.rs: spots where existing Molt code needs to link up.
+    *   See the "TODO's" in value10.rs: spots where existing Molt code needs to link up.
     *   Use Molt's get_int() logic when converting string_rep to int.
         *   Probably the only place this code needs to exist, other than in `expr` (since
             there are some special details there).
@@ -18,10 +11,18 @@
     *   Use Molt's float formatting (which is not yet written) when converting
         Datum::Flt() to string.
         *   Again, probably the only place this code needs to exist.
+        *   I can add a stub which just does the normal Rust formatting.
     *   Use Molt's list parsing and formatting for Datum::List.
     *   The MoltValue functions return errors as Result<_,String>; they should be
         Result<_,ResultCode>.
     *   And ResultCode should use `Error(MoltValue)` and `Return(MoltValue)` instead of String.
+
+## 2019-06-15
+*   With help from Krisha Sannasi at users.rust-lang.org, I was able to fix up the Data::Other
+    downcasting so as to avoid using nested `Rc`'s.  See `value10.rs`.
+*   Tried using the shrinkwraprs crate to wrap `i64` as `MyInt`.  As I expected, it adds some
+    value but it isn't transparent, and since all I really need to fix is parsing for integers
+    and formatting for floats it isn't worth it.  Took it out again.
 
 ## 2019-06-12
 *   Tried returning Ref<String> instead of Rc<String>, and immediately ran into
