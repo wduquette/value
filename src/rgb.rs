@@ -4,6 +4,8 @@
 // (with tests to make sure I didn't screw it up.)
 use std::fmt;
 use std::str::FromStr;
+use std::rc::Rc;
+use crate::value::MoltValue;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct RGB {
@@ -16,21 +18,38 @@ impl RGB {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         RGB { r, g, b }
     }
+
+    // TODO: The error should be a Molt ResultCode.
+    pub fn from_molt(value: &MoltValue) -> Result<Rc<Self>,String> {
+        if let Some(rgb) = value.as_other::<RGB>() {
+            Ok(rgb)
+        } else {
+            Err("Not a hex RGB string".to_string())
+        }
+    }
 }
 
 impl FromStr for RGB {
-    type Err = std::num::ParseIntError;
+    type Err = String;
 
     // Parses a color hex code of the form '#rRgGbB..' into an
-    // instance of 'RGB'
+    // instance of 'RGB'.  The parsing is sketchy.
     fn from_str(hex_code: &str) -> Result<Self, Self::Err> {
-        // u8::from_str_radix(src: &str, radix: u32) converts a string
-        // slice in a given base to u8
-        let r: u8 = u8::from_str_radix(&hex_code[1..3], 16)?;
-        let g: u8 = u8::from_str_radix(&hex_code[3..5], 16)?;
-        let b: u8 = u8::from_str_radix(&hex_code[5..7], 16)?;
+        if hex_code.len() == 7 {
+            let r = u8::from_str_radix(&hex_code[1..3], 16);
+            let g = u8::from_str_radix(&hex_code[3..5], 16);
+            let b = u8::from_str_radix(&hex_code[5..7], 16);
 
-        Ok(RGB { r, g, b })
+            if r.is_ok() || g.is_ok() || b.is_ok() {
+                return Ok(RGB { 
+                    r: r.unwrap(), 
+                    g: g.unwrap(), 
+                    b: b.unwrap() 
+                });
+            }
+        }
+
+        Err("Not a hex RGB string".to_string())
     }
 }
 
@@ -58,6 +77,16 @@ mod tests {
         assert_eq!(str::parse::<RGB>("#010203"), Ok(rgb));
         assert_eq!(rgb.to_string(), "#010203".to_string());
 
-        // TODO: for production code, also check errors.
+        assert_eq!(RGB::from_str("010203"), Err("Not a hex RGB string".to_string()));
+    }
+
+    #[test]
+    fn from_molt() {
+        let rgb = RGB::new(255, 255, 255);
+        let value = MoltValue::from_other(rgb); 
+
+        let rgb2 = RGB::from_molt(&value);
+
+        assert_eq!(*(rgb2.unwrap()), RGB::new(255, 255, 255));
     }
 }

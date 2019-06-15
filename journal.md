@@ -3,10 +3,6 @@
 ## Things to remember to do
 
 *   Add example of defining an external type to the MoltValue doc comment.
-*   Ponder:
-    *   Make `MoltValue::as_other` use the parsing error as its error message.
-    *   External types should define FromStr so that the error message will
-        be appropriate.
 *   Integration
     *   See the "TODO's" in value10.rs: spots where existing Molt code needs to link up.
     *   Use Molt's get_int() logic when converting string_rep to int.
@@ -31,6 +27,10 @@
 *   Added better doc comments.
     *   I still need to add examples, but I'll do that after I copy this into the
         molt repo, so that I won't need to change the "use" statements.
+*   Considered changing `MoltValue::as_other` to return a result, using the string value
+    of the `FromStr` result as the error message.  But it turns out that that result
+    isn't guaranteed to implement Display, so that's not going to work.
+*   Added `RGB::from_molt` as an example.
 
 ## 2019-06-12
 *   Tried returning Ref<String> instead of Rc<String>, and immediately ran into
