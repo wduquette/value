@@ -2,6 +2,7 @@
 
 ## Things to remember to do
 
+*   Add example of defining an external type to the MoltValue doc comment.
 *   Ponder:
     *   Make `MoltValue::as_other` use the parsing error as its error message.
     *   External types should define FromStr so that the error message will
