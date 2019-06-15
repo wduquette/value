@@ -69,18 +69,21 @@ pub type MoltFloat = f64;
 /// Converting from one data rep to another is expensive, as it involves parsing
 /// the string value.  Performance suffers when code switches rapidly from one data 
 /// rep to another, e.g., in a tight loop.  The effect, which is known as "shimmering",
-/// can usually be avoid with a little care.  
+/// can usually be avoided with a little care.  
 /// 
 /// `MoltValue` handles strings, integers, floating-point values, and lists as
 /// special cases, since they are part of the language are so frequently used.
 /// In addition, a `MoltValue` can also contain any Rust struct that implements
-/// the std::fmt::Display, std::fmt::Debug, and std::str::FromStr traits.  The
-/// Display and FromStr traits are used to do the string rep/data rep conversions;
-/// consequently,
+/// the `std::fmt::Display`, `std::fmt::Debug`, and `std::str::FromStr` traits.  The
+/// `Display` and `FromStr` traits are used to do the string rep/data rep conversions;
+/// in particular:
 /// 
-/// * The Display implementation is responsible for producing the value's string rep.
-/// * The FromStr implementation must be able to parse the Display implementation's
+/// * The `Display` implementation is responsible for producing the value's string rep.
+/// 
+/// * The `FromStr` implementation is responsible for producing the value's data rep from
+///   a string, and so must be able to parse the `Display` implementation's
 ///   output.
+/// 
 /// * The string rep should be chosen so as to fit in well with TCL syntax, lest
 ///   confusion, quoting hell, and comedy should ensue.  (You'll know it when you
 ///   see it.)
@@ -90,17 +93,6 @@ pub struct MoltValue {
     data_rep: RefCell<Datum>,
 }
 
-// The data representation for MoltValues that define data
-// TODO: flesh out comments.
-#[derive(Clone, Debug)]
-enum Datum {
-    Int(MoltInt),
-    Flt(MoltFloat),
-    List(Rc<MoltList>),
-    Other(Rc<dyn MoltAny>),
-    None,
-}
-
 impl Display for MoltValue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.as_string())
@@ -108,9 +100,32 @@ impl Display for MoltValue {
 }
 
 impl MoltValue {
-    /// Returns the string representation of the value as a reference-counted
-    /// string, computing it if necessary.  This method is preferred to
-    /// `to_string` as it doesn't clone the entire string.
+    /// Creates a new `MoltValue` from the given string.
+    ///
+    /// **Note:** this method takes a `String` rather than a `&str` because the 
+    /// intent is for the `MoltValue` to take ownership and create a reference-counted 
+    /// immutable string from the input.  If the method took `&str` instead, it
+    /// would have to clone its input in order to save it, which would very often
+    /// result in cloning newly-created strings.
+    /// 
+    /// # Example
+    /// 
+    /// TODO
+    pub fn from_string(str: String) -> MoltValue {
+        MoltValue {
+            string_rep: RefCell::new(Some(Rc::new(str))),
+            data_rep: RefCell::new(Datum::None),
+        }
+    }
+    /// Returns the value's string representation as a reference-counted
+    /// string. 
+    /// 
+    /// **Note**: this is the standard way of retrieving a `MoltValue`'s 
+    /// string rep, as unlike `to_string` it doesn't create a new `String`.
+    /// 
+    /// # Example
+    /// 
+    /// TODO
     fn as_string(&self) -> Rc<String> {
         // FIRST, if there's already a string, return it.
         let mut string_ref = self.string_rep.borrow_mut();
@@ -129,19 +144,11 @@ impl MoltValue {
         new_string
     }
 
-    /// Creates a new MoltValue from the given string.
-    ///
-    /// Note: takes a String rather than a &str because the whole point is to
-    /// take ownership and create a reference-counted immutable string.  If
-    /// the method took &str, then a newly created String might get cloned.
-    pub fn from_string(str: String) -> MoltValue {
-        MoltValue {
-            string_rep: RefCell::new(Some(Rc::new(str))),
-            data_rep: RefCell::new(Datum::None),
-        }
-    }
-
-    /// Creates a new MoltValue whose data representation is a MoltInt.
+    /// Creates a new `MoltValue` whose data representation is a `MoltInt`.
+    /// 
+    /// # Example
+    /// 
+    /// TODO
     pub fn from_int(int: MoltInt) -> MoltValue {
         MoltValue {
             string_rep: RefCell::new(None),
@@ -149,31 +156,30 @@ impl MoltValue {
         }
     }
 
-    /// Tries to return the MoltValue as an int.  This method will:
-    ///
-    /// * Return the data representation if it is already a MoltInt.
-    /// * If there is no current string representation, produce one from the
-    ///   current data representation.
-    /// * Try to parse the string representation as an int.
-    /// * On success, save the int as the new data representation
-    /// * On failure, return an error.
+    /// Tries to return the `MoltValue` as a `MoltInt`, parsing the 
+    /// value's string representation if necessary.
     ///
     /// TODO: Need to return Molt-compatible Err's.
+    /// 
+    /// # Example
+    /// 
+    /// TODO
     pub fn as_int(&self) -> Result<MoltInt, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
-        // FIRST, if we have an integer return it.
+        // FIRST, if we have an integer then just return it.
         if let Datum::Int(int) = *data_ref {
             return dbg!(Ok(int));
         }
 
-        // NEXT, if we don't have a string_rep, get one.
+        // NEXT, if we don't have a string_rep, get one from the current
+        // data_rep.
         if (*string_ref).is_none() {
             *string_ref = Some(Rc::new(data_ref.to_string()));
         }
 
-        // NEXT, if we have a string_rep, try to parse it as an integer
+        // NEXT, Try to parse the string_rep as an integer
         if let Some(str) = &*string_ref {
             // TODO: Uses standard Rust integer parsing.  Need to use the
             // TCL algorithm; see Interp::get_int.
@@ -183,12 +189,16 @@ impl MoltValue {
             }
         }
 
-        // NEXT, nothing worked.
+        // NEXT, we can't interpret it as an integer; return an error.
         // TODO: Use the correct error message.
         Err("Not an integer".to_string())
     }
 
-    /// Creates a new MoltValue whose data representation is a MoltFloat.
+    /// Creates a new `MoltValue` whose data representation is a `MoltFloat`.
+    /// 
+    /// # Example
+    /// 
+    /// TODO
     pub fn from_float(flt: MoltFloat) -> MoltValue {
         MoltValue {
             string_rep: RefCell::new(None),
@@ -196,31 +206,30 @@ impl MoltValue {
         }
     }
 
-    /// Tries to return the MoltValue as an float.  This method will:
-    ///
-    /// * Return the data representation if it is already a MoltFloat.
-    /// * If there is no current string representation, produce one from the
-    ///   current data representation.
-    /// * Try to parse the string representation as a float.
-    /// * On success, save the float as the new data representation
-    /// * On failure, return an error.
+    /// Tries to return the `MoltValue` as a `MoltFloat`, parsing the 
+    /// value's string representation if necessary.
     ///
     /// TODO: Need to return Molt-compatible Err's.
+    /// 
+    /// # Example
+    /// 
+    /// TODO
     pub fn as_float(&self) -> Result<MoltFloat, String> {
         let mut data_ref = self.data_rep.borrow_mut();
         let mut string_ref = self.string_rep.borrow_mut();
 
-        // FIRST, if we have a float, return it.
+        // FIRST, if we have a float then just return it.
         if let Datum::Flt(flt) = *data_ref {
             return Ok(flt);
         }
 
-        // NEXT, if we don't have a string_rep, get one.
+        // NEXT, if we don't have a string_rep, get one from the current 
+        // data rep.
         if (*string_ref).is_none() {
             *string_ref = Some(Rc::new(data_ref.to_string()));
         }
 
-        // NEXT, if we have a string rep, try to parse it as a float
+        // NEXT, Try to parse the string_rep as a float
         if let Some(str) = &*string_ref {
             // TODO: Currently uses the standard Rust parser.  That may
             // be OK, but I need to check.
@@ -230,12 +239,16 @@ impl MoltValue {
             }
         }
 
-        // NEXT, nothing worked.
+        // NEXT, we can't interpret it as an integer; return an error.
         // TODO: need to use the right error message.
         Err("Not a float".to_string())
     }
 
-    /// Creates a new MoltValue whose data representation is a MoltList.
+    /// Creates a new `MoltValue` whose data representation is a `MoltList`.
+    /// 
+    /// # Example
+    /// 
+    /// TODO
     pub fn from_list(list: MoltList) -> MoltValue {
         MoltValue {
             string_rep: RefCell::new(None),
@@ -243,8 +256,15 @@ impl MoltValue {
         }
     }
 
-    // Incomplete: should try to parse the string_rep, if any, as a list.  But I don't
-    // have a list parser in this project.
+    /// Tries to return the `MoltValue` as a `MoltList`, parsing the 
+    /// value's string representation if necessary.
+    ///
+    /// TODO: Need to return Molt-compatible Err's.
+    /// TODO: Need to add list parsing.
+    /// 
+    /// # Example
+    /// 
+    /// TODO
     pub fn as_list(&self) -> Result<Rc<MoltList>, String> {
         let data_ref = self.data_rep.borrow_mut();
 
@@ -257,36 +277,37 @@ impl MoltValue {
         }
     }
 
-    /// Creates a new MoltValue containing the given value of a user type.
-    /// The type must implement Display and FromStr, and the Display result
-    /// must be compatible with the FromStr parsing (and with TCL syntax),
-    /// i.e., if there's whitespace the value must be interpretable as a
-    /// a TCL list.
+    /// Creates a new `MoltValue` containing the given value of some user type. 
+    /// 
+    /// The type must implement `Display`, `Debug`, and `FromStr`, and the 
+    /// `Display` output must be compatible with the `FromStr` parser (and with 
+    /// TCL syntax).  The value will be reference counted.
     pub fn from_other<T: 'static>(value: T) -> MoltValue
     where
         T: Display + Debug,
     {
         MoltValue {
             string_rep: RefCell::new(None),
-            // Use Rc<Rc<T>> === Rc<MoltAny>, so that Datum is known to be
-            // clonable and the user's data is efficiently clonable and shareable.
-            // data_rep: RefCell::new(Datum::Other(Rc::new(Rc::new(value)))),
             data_rep: RefCell::new(Datum::Other(Rc::new(value))),
         }
     }
 
-    /// Tries to interpret the MoltValue as a value of type `Rc<T>`.
+    /// Tries to interpret the `MoltValue` as a value of type `T`.
     ///
     /// The value is returned as an `Rc<T>`, as this allows the client to
     /// use the value freely.
     ///
     /// This method returns `Option` rather than `Result` because it is up
-    /// to the caller to provide a meaningful error message: the method
-    /// doesn't know what to call the type.
+    /// to the caller to provide a meaningful error message.  It is normal
+    /// for externally defined types to wrap this function in a function
+    /// that does so.
     ///
-    /// When adding an external type `MyType` to Molt, it is usual to define
-    /// functions `from_my_type` and `to_my_type` that make use of `from_other`
-    /// and `as_other`.
+    /// TODO: Or, we could simply require `FromStr` to return an appropriate
+    /// error message.  That might be better.
+    /// 
+    /// # Example
+    /// 
+    /// TODO
     pub fn as_other<T: 'static>(&self) -> Option<Rc<T>>
     where
         T: Display + Debug + FromStr,
@@ -330,6 +351,8 @@ impl MoltValue {
 //-----------------------------------------------------------------------------
 // The MoltAny Trait: a tool for handling external types.
 
+/// This trait allows us to except "other" types, and still compute their
+/// string rep on demand.
 trait MoltAny: Any + Display + Debug {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
@@ -337,10 +360,12 @@ trait MoltAny: Any + Display + Debug {
 }
 
 impl dyn MoltAny {
+    /// Is this value a value of the desired type?
     pub fn is<T: 'static>(&self) -> bool {
         TypeId::of::<T>() == self.type_id()
     }
     
+    /// Downcast an `Rc<MoltAny>` to an `Rc<T>`
     fn downcast<T: 'static>(self: Rc<Self>) -> Result<Rc<T>, Rc<Self>>{
         if self.is::<T>() {
             unsafe {
@@ -349,16 +374,6 @@ impl dyn MoltAny {
         } else {
             Err(self)
         }
-    }
-}
-
-fn downcast_it<T: 'static>(val: Rc<MoltAny>) -> Result<Rc<T>, Rc<MoltAny>>{
-    if val.is::<T>() {
-        unsafe {
-            Ok(Rc::from_raw(Rc::into_raw(val) as _))
-        }
-    } else {
-        Err(val)
     }
 }
 
@@ -377,7 +392,25 @@ impl<T: Any + Display + Debug> MoltAny for T {
 //-----------------------------------------------------------------------------
 // Datum enum: a sum type for the different kinds of data_reps.
 
-// TODO: needs to provide standard TCL list and float output.
+// The data representation for MoltValues.
+#[derive(Clone, Debug)]
+enum Datum {
+    /// A Molt integer
+    Int(MoltInt),
+
+    /// A Molt float
+    Flt(MoltFloat),
+
+    /// A Molt List
+    List(Rc<MoltList>),
+
+    /// An external data type
+    Other(Rc<dyn MoltAny>),
+
+    /// The MoltValue has no data rep at present.
+    None,
+}
+
 impl Display for Datum {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {

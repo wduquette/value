@@ -2,6 +2,10 @@
 
 ## Things to remember to do
 
+*   Ponder:
+    *   Make `MoltValue::as_other` use the parsing error as its error message.
+    *   External types should define FromStr so that the error message will
+        be appropriate.
 *   Integration
     *   See the "TODO's" in value10.rs: spots where existing Molt code needs to link up.
     *   Use Molt's get_int() logic when converting string_rep to int.
@@ -23,6 +27,9 @@
 *   Tried using the shrinkwraprs crate to wrap `i64` as `MyInt`.  As I expected, it adds some
     value but it isn't transparent, and since all I really need to fix is parsing for integers
     and formatting for floats it isn't worth it.  Took it out again.
+*   Added better doc comments.
+    *   I still need to add examples, but I'll do that after I copy this into the
+        molt repo, so that I won't need to change the "use" statements.
 
 ## 2019-06-12
 *   Tried returning Ref<String> instead of Rc<String>, and immediately ran into
