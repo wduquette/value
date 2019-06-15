@@ -72,11 +72,16 @@ pub type MoltFloat = f64;
 /// can usually be avoided with a little care.  
 /// 
 /// `MoltValue` handles strings, integers, floating-point values, and lists as
-/// special cases, since they are part of the language are so frequently used.
-/// In addition, a `MoltValue` can also contain any Rust struct that implements
-/// the `std::fmt::Display`, `std::fmt::Debug`, and `std::str::FromStr` traits.  The
-/// `Display` and `FromStr` traits are used to do the string rep/data rep conversions;
-/// in particular:
+/// special cases, since they are part of the language and are so frequently used.
+/// In addition, a `MoltValue` can also contain any Rust struct that meets
+/// certain requirements.
+/// 
+/// # External Types
+/// 
+/// Any struct that implements the `std::fmt::Display`, `std::fmt::Debug`, 
+/// and `std::str::FromStr` traits can be saved in a `MoltValue`.  The struct's
+/// `Display` and `FromStr` trait implementations are used to do the string 
+/// rep/data rep conversions.  In particular:
 /// 
 /// * The `Display` implementation is responsible for producing the value's string rep.
 /// 
@@ -87,6 +92,14 @@ pub type MoltFloat = f64;
 /// * The string rep should be chosen so as to fit in well with TCL syntax, lest
 ///   confusion, quoting hell, and comedy should ensue.  (You'll know it when you
 ///   see it.)
+/// 
+/// ## Example
+/// 
+/// For example, the following code shows how to define an external type implementing
+/// a simple enum.
+/// 
+/// ```
+/// ```
 #[derive(Clone, Debug)]
 pub struct MoltValue {
     string_rep: RefCell<Option<Rc<String>>>,
@@ -302,9 +315,6 @@ impl MoltValue {
     /// for externally defined types to wrap this function in a function
     /// that does so.
     ///
-    /// TODO: Or, we could simply require `FromStr` to return an appropriate
-    /// error message.  That might be better.
-    /// 
     /// # Example
     /// 
     /// TODO
@@ -346,6 +356,56 @@ impl MoltValue {
         // NEXT, we couldn't do it.
         None
     }
+
+    /// Tries to interpret the `MoltValue` as a value of type `T`, returning
+    /// a copy.
+    ///
+    /// This method returns `Option` rather than `Result` because it is up
+    /// to the caller to provide a meaningful error message.  It is normal
+    /// for externally defined types to wrap this function in a function
+    /// that does so.
+    ///
+    /// # Example
+    /// 
+    /// TODO
+    pub fn as_copy<T: 'static>(&self) -> Option<T>
+    where
+        T: Display + Debug + FromStr + Copy,
+    {
+        let mut string_ref = self.string_rep.borrow_mut();
+        let mut data_ref = self.data_rep.borrow_mut();
+
+        // FIRST, if we have the desired type, return it.
+        if let Datum::Other(other) = &*data_ref {
+            // other is an &Rc<MoltAny>
+            let result = other.clone().downcast::<T>();
+
+            if result.is_ok() {
+                // Let's be sure we're really getting what we wanted.
+                let out: Rc<T> = result.unwrap();
+                return Some(*out);
+            }
+        }
+
+        // NEXT, if we don't have a string_rep, get one.
+        if (*string_ref).is_none() {
+            *string_ref = Some(Rc::new(data_ref.to_string()));
+        }
+
+        // NEXT, can we parse it as a T?  If so, save it back to
+        // the data_rep, and return it.
+        if let Some(str) = &*string_ref {
+            if let Ok(tval) = str.parse::<T>() {
+                let tval = Rc::new(tval);
+                let out = tval.clone();
+                *data_ref = Datum::Other(Rc::new(tval));
+                return Some(*out);
+            }
+        }
+
+        // NEXT, we couldn't do it.
+        None
+    } 
 }
 
 //-----------------------------------------------------------------------------

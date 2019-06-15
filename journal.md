@@ -2,7 +2,19 @@
 
 ## Things to remember to do
 
+*   Test as_copy(), see about simplifying it to call as_other().
+*   Need to support booleans!
 *   Add example of defining an external type to the MoltValue doc comment.
+    *   Something simpler than RGB, but not Copy.
+*   Ponder: include support for Copy types.
+    *   That is, provide `Datum::Copy(MyCopy)` so that we don't need to store them on the heap.
+    *   Can this be done?  Different Copy types are different sizes; I think they'd need to go
+        in a Box, in which case an RC is probably better.
+    *   Could maybe add a `MoltValue::as_copy` method: like `as_other`, but also requires that
+        the type implements `Copy`.  Then, it could simply return a copy.
+*   Ponder: explicitly include support for enum types?
+    *   Display/FromStr aren't built into enum types.
+    *   Handling Copy types would take care of it.
 *   Integration
     *   See the "TODO's" in value10.rs: spots where existing Molt code needs to link up.
     *   Use Molt's get_int() logic when converting string_rep to int.
@@ -17,6 +29,13 @@
     *   The MoltValue functions return errors as Result<_,String>; they should be
         Result<_,ResultCode>.
     *   And ResultCode should use `Error(MoltValue)` and `Return(MoltValue)` instead of String.
+*   Ponder: include support for Copy types.
+    *   That is, provide `Datum::Copy(MyCopy)` so that we don't need to store them on the heap.
+    *   Can this be done?  Different Copy types are different sizes; I think they'd need to go
+        in a Box, in which case an RC is probably better.
+    *   Could maybe add a `MoltValue::as_copy` method: like `as_other`, but also requires that
+        the type implements `Copy`.  Then, it could simply return a copy.
+    *   Added as_copy(); it compiles OK.
 
 ## 2019-06-15
 *   With help from Krisha Sannasi at users.rust-lang.org, I was able to fix up the Data::Other
@@ -31,6 +50,8 @@
     of the `FromStr` result as the error message.  But it turns out that that result
     isn't guaranteed to implement Display, so that's not going to work.
 *   Added `RGB::from_molt` as an example.
+*   Added `Judgment` as an example of an external enum.
+    *   But `Judgment` is Copy.  Should I provide a special case for Copy, since no RC is needed? 
 
 ## 2019-06-12
 *   Tried returning Ref<String> instead of Rc<String>, and immediately ran into
