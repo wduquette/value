@@ -4,6 +4,7 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
+use std::any::TypeId;
 
 //-----------------------------------------------------------------------------
 // Public Data Types
@@ -233,12 +234,11 @@ impl MoltValue {
         // FIRST, if we have the desired type, return it.
         if let Datum::Other(other) = &*data_ref {
             // other is an &Rc<MoltAny>
-            // let result = (**other).as_any().downcast_ref::<Rc<T>>();
-            let result = (*other).downcast::<T>();
+            let result = other.clone().downcast::<T>();
 
             if result.is_ok() {
                 // Let's be sure we're really getting what we wanted.
-                let out: Rc<T> = result.unwrap().clone();
+                let out: Rc<T> = result.unwrap();
                 return Some(out);
             }
         }
@@ -271,6 +271,32 @@ trait MoltAny: Any + Display + Debug {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn into_any(self: Box<Self>) -> Box<dyn Any>;
+}
+
+impl dyn MoltAny {
+    pub fn is<T: 'static>(&self) -> bool {
+        TypeId::of::<T>() == self.type_id()
+    }
+    
+    fn downcast<T: 'static>(self: Rc<Self>) -> Result<Rc<T>, Rc<Self>>{
+        if self.is::<T>() {
+            unsafe {
+                Ok(Rc::from_raw(Rc::into_raw(self) as _))
+            }
+        } else {
+            Err(self)
+        }
+    }
+}
+
+fn downcast_it<T: 'static>(val: Rc<MoltAny>) -> Result<Rc<T>, Rc<MoltAny>>{
+    if val.is::<T>() {
+        unsafe {
+            Ok(Rc::from_raw(Rc::into_raw(val) as _))
+        }
+    } else {
+        Err(val)
+    }
 }
 
 impl<T: Any + Display + Debug> MoltAny for T {
