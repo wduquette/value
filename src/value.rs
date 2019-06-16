@@ -6,6 +6,74 @@
 //! data value can be any TCL data value: a number, a list, or any
 //! arbitrary type (that meets certain requirements).
 //!
+//! In TCL "everything is a string"; thus, every `MoltValue` has a string
+//! representation, or _string rep_.  But for efficiency with numbers, lists,
+//! and user-defined binary data structures, the MoltValue also caches a
+//! data representation, or _data rep_.
+//!
+//! A `MoltValue` can have just a string rep, just a data rep, or both.
+//! Like the `Tcl_Obj` in standard TCL, the `MoltValue` is like a stork: it
+//! can stand one leg, the other leg, or both legs.
+//!
+//! A client can ask the `MoltValue` for its string, which is always available
+//! and will be computed from the data rep if it doesn't already exist.  (Once
+//! computed, the string rep never changes.)  A client can also ask
+//! the `MoltValue` for any other type it desires.  If the requested data rep
+//! is already available, it will be returned; otherwise, the `MoltValue` will
+//! attempt to parse it from the string_rep.  The last successful conversion is
+//! cached for later.
+//!
+//! For example, consider the following sequence:
+//!
+//! * A computation yields a `MoltValue` containing the integer 5. The data rep is
+//!   a `MoltInt`, and the string rep is undefined.
+//!
+//! * The client asks for the string, and the string rep "5" is computed.
+//!
+//! * The client asks for the value's integer value.  It's available and is returned.
+//!
+//! * The client asks for the value's value as a MoltList.  This is possible, because
+//!   the string "5" can be interpreted as a list of one element, the
+//!   string "5".  A new data rep is computed and saved, replacing the previous one.
+//!
+//! With this scheme, long series of computations can be carried
+//! out efficiently using only the the data rep, incurring the parsing cost at most
+//! once, while preserving TCL's "everything is a string" semantics.
+//!
+//! Converting from one data rep to another is expensive, as it involves parsing
+//! the string value.  Performance suffers when code switches rapidly from one data
+//! rep to another, e.g., in a tight loop.  The effect, which is known as "shimmering",
+//! can usually be avoided with a little care.  
+//!
+//! `MoltValue` handles strings, integers, floating-point values, and lists as
+//! special cases, since they are part of the language and are so frequently used.
+//! In addition, a `MoltValue` can also contain any Rust struct that meets
+//! certain requirements.
+//!
+//! # External Types
+//!
+//! Any struct that implements the `std::fmt::Display`, `std::fmt::Debug`,
+//! and `std::str::FromStr` traits can be saved in a `MoltValue`.  The struct's
+//! `Display` and `FromStr` trait implementations are used to do the string
+//! rep/data rep conversions.  In particular:
+//!
+//! * The `Display` implementation is responsible for producing the value's string rep.
+//!
+//! * The `FromStr` implementation is responsible for producing the value's data rep from
+//!   a string, and so must be able to parse the `Display` implementation's
+//!   output.
+//!
+//! * The string rep should be chosen so as to fit in well with TCL syntax, lest
+//!   confusion, quoting hell, and comedy should ensue.  (You'll know it when you
+//!   see it.)
+//!
+//! ## Example
+//!
+//! For example, the following code shows how to define an external type implementing
+//! a simple enum.
+//!
+//! TODO
+//!
 //! [`MoltValue`]: struct.MoltValue.html
 
 use std::any::Any;
@@ -25,80 +93,7 @@ pub type MoltList = Vec<MoltValue>;
 pub type MoltInt = i64;
 pub type MoltFloat = f64;
 
-/// The `MoltValue` struct is the standard representation of a data value
-/// in the Molt language.  It represents a single immutable data value; the
-/// data is reference-counted, so instances can be cloned efficiently.  The
-/// data value can be any TCL data value: a number, a list, or any
-/// arbitrary type (that meets certain requirements).
-///
-/// In TCL "everything is a string"; thus, every `MoltValue` has a string
-/// representation, or _string rep_.  But for efficiency with numbers, lists,
-/// and user-defined binary data structures, the MoltValue also caches a
-/// data representation, or _data rep_.
-///
-/// A `MoltValue` can have just a string rep, just a data rep, or both.
-/// Like the `Tcl_Obj` in standard TCL, the `MoltValue` is like a stork: it
-/// can stand one leg, the other leg, or both legs.
-///
-/// A client can ask the `MoltValue` for its string, which is always available
-/// and will be computed from the data rep if it doesn't already exist.  (Once
-/// computed, the string rep never changes.)  A client can also ask
-/// the `MoltValue` for any other type it desires.  If the requested data rep
-/// is already available, it will be returned; otherwise, the `MoltValue` will
-/// attempt to parse it from the string_rep.  The last successful conversion is
-/// cached for later.
-///
-/// For example, consider the following sequence:
-///
-/// * A computation yields a `MoltValue` containing the integer 5. The data rep is
-///   a `MoltInt`, and the string rep is undefined.
-///
-/// * The client asks for the string, and the string rep "5" is computed.
-///
-/// * The client asks for the value's integer value.  It's available and is returned.
-///
-/// * The client asks for the value's value as a MoltList.  This is possible, because
-///   the string "5" can be interpreted as a list of one element, the
-///   string "5".  A new data rep is computed and saved, replacing the previous one.
-///
-/// With this scheme, long series of computations can be carried
-/// out efficiently using only the the data rep, incurring the parsing cost at most
-/// once, while preserving TCL's "everything is a string" semantics.
-///
-/// Converting from one data rep to another is expensive, as it involves parsing
-/// the string value.  Performance suffers when code switches rapidly from one data
-/// rep to another, e.g., in a tight loop.  The effect, which is known as "shimmering",
-/// can usually be avoided with a little care.  
-///
-/// `MoltValue` handles strings, integers, floating-point values, and lists as
-/// special cases, since they are part of the language and are so frequently used.
-/// In addition, a `MoltValue` can also contain any Rust struct that meets
-/// certain requirements.
-///
-/// # External Types
-///
-/// Any struct that implements the `std::fmt::Display`, `std::fmt::Debug`,
-/// and `std::str::FromStr` traits can be saved in a `MoltValue`.  The struct's
-/// `Display` and `FromStr` trait implementations are used to do the string
-/// rep/data rep conversions.  In particular:
-///
-/// * The `Display` implementation is responsible for producing the value's string rep.
-///
-/// * The `FromStr` implementation is responsible for producing the value's data rep from
-///   a string, and so must be able to parse the `Display` implementation's
-///   output.
-///
-/// * The string rep should be chosen so as to fit in well with TCL syntax, lest
-///   confusion, quoting hell, and comedy should ensue.  (You'll know it when you
-///   see it.)
-///
-/// ## Example
-///
-/// For example, the following code shows how to define an external type implementing
-/// a simple enum.
-///
-/// ```
-/// ```
+/// The `MoltValue` type. See [the module level documentation](index.html) for more.
 #[derive(Clone, Debug)]
 pub struct MoltValue {
     string_rep: RefCell<Option<Rc<String>>>,
@@ -483,6 +478,8 @@ impl Display for Datum {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fmt;
+    use std::str::FromStr;
 
     #[test]
     fn to_string() {
@@ -587,9 +584,6 @@ mod tests {
     }
 
     // Sample external type, used for testing.
-    use std::fmt;
-    use std::rc::Rc;
-    use std::str::FromStr;
 
     #[derive(Debug, PartialEq, Copy, Clone)]
     pub enum Flavor {
