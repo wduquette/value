@@ -34,9 +34,7 @@ mod tests {
 
     fn get_str1(datum: &Datum) -> &str {
         match datum {
-            Datum::Str(rcval) => {
-                rcval
-            }
+            Datum::Str(rcval) => rcval,
         }
     }
 

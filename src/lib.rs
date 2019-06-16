@@ -70,9 +70,8 @@ mod value9;
 // Trying to simplify the double Rc<T> for MoltAny
 mod value10;
 
-// Temporary
-mod judgment;
+// A Copy external type.
+mod flavor;
 
 // Preparing for integration
 pub mod value;
-

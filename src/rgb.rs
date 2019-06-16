@@ -2,10 +2,10 @@
 // https://rust-lang-nursery.github.io/rust-cookbook/text/string_parsing.html, as
 // a convenient example of FromStr, and then extended to provide fmt::Display as well.
 // (with tests to make sure I didn't screw it up.)
-use std::fmt;
-use std::str::FromStr;
-use std::rc::Rc;
 use crate::value::MoltValue;
+use std::fmt;
+use std::rc::Rc;
+use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct RGB {
@@ -20,7 +20,7 @@ impl RGB {
     }
 
     // TODO: The error should be a Molt ResultCode.
-    pub fn from_molt(value: &MoltValue) -> Result<Rc<Self>,String> {
+    pub fn from_molt(value: &MoltValue) -> Result<Rc<Self>, String> {
         if let Some(rgb) = value.as_other::<RGB>() {
             Ok(rgb)
         } else {
@@ -41,10 +41,10 @@ impl FromStr for RGB {
             let b = u8::from_str_radix(&hex_code[5..7], 16);
 
             if r.is_ok() || g.is_ok() || b.is_ok() {
-                return Ok(RGB { 
-                    r: r.unwrap(), 
-                    g: g.unwrap(), 
-                    b: b.unwrap() 
+                return Ok(RGB {
+                    r: r.unwrap(),
+                    g: g.unwrap(),
+                    b: b.unwrap(),
                 });
             }
         }
@@ -77,13 +77,16 @@ mod tests {
         assert_eq!(str::parse::<RGB>("#010203"), Ok(rgb));
         assert_eq!(rgb.to_string(), "#010203".to_string());
 
-        assert_eq!(RGB::from_str("010203"), Err("Not a hex RGB string".to_string()));
+        assert_eq!(
+            RGB::from_str("010203"),
+            Err("Not a hex RGB string".to_string())
+        );
     }
 
     #[test]
     fn from_molt() {
         let rgb = RGB::new(255, 255, 255);
-        let value = MoltValue::from_other(rgb); 
+        let value = MoltValue::from_other(rgb);
 
         let rgb2 = RGB::from_molt(&value);
 

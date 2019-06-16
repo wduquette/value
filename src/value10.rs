@@ -1,10 +1,10 @@
 use std::any::Any;
+use std::any::TypeId;
 use std::cell::RefCell;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::any::TypeId;
 
 //-----------------------------------------------------------------------------
 // Public Data Types
@@ -277,23 +277,19 @@ impl dyn MoltAny {
     pub fn is<T: 'static>(&self) -> bool {
         TypeId::of::<T>() == self.type_id()
     }
-    
-    fn downcast<T: 'static>(self: Rc<Self>) -> Result<Rc<T>, Rc<Self>>{
+
+    fn downcast<T: 'static>(self: Rc<Self>) -> Result<Rc<T>, Rc<Self>> {
         if self.is::<T>() {
-            unsafe {
-                Ok(Rc::from_raw(Rc::into_raw(self) as _))
-            }
+            unsafe { Ok(Rc::from_raw(Rc::into_raw(self) as _)) }
         } else {
             Err(self)
         }
     }
 }
 
-fn downcast_it<T: 'static>(val: Rc<MoltAny>) -> Result<Rc<T>, Rc<MoltAny>>{
+fn downcast_it<T: 'static>(val: Rc<MoltAny>) -> Result<Rc<T>, Rc<MoltAny>> {
     if val.is::<T>() {
-        unsafe {
-            Ok(Rc::from_raw(Rc::into_raw(val) as _))
-        }
+        unsafe { Ok(Rc::from_raw(Rc::into_raw(val) as _)) }
     } else {
         Err(val)
     }
